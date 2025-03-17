@@ -26,7 +26,7 @@ public class CMD{
         }
     }
 
-    public static String echo(String[] command){
+    public static String expect(String[] command){
         final ProcessBuilder builder = new ProcessBuilder();
         try{
             final Process process = builder.command(command).start();
@@ -45,6 +45,10 @@ public class CMD{
         }catch(IOException | InterruptedException e){
             throw new RuntimeException(e);
         }
+    }
+
+    public static String[] echo(String[] input){
+        return input;
     }
 
     public static String trimFrom(String output, String trim){
