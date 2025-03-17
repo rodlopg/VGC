@@ -47,12 +47,16 @@ public class CMD{
         }
     }
 
-    public static String[] echo(String[] input){
-        return input;
-    }
-
     public static String trimFrom(String output, String trim){
         return output.substring(output.indexOf(trim) + 1).trim();
+    }
+
+    public static String normalize(String[] command, String trim){
+        return trimFrom(expect(command), trim);
+    }
+
+    public static String[] echo(String[] input){
+        return input;
     }
 
     public static void cwTextFile(String[] text){

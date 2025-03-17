@@ -69,10 +69,10 @@ public class GClient extends Application{
                 }
                 String test = "TEST";
                 int testInt = 0;
-                List<Function<Object, Object>> functions = List.of(
-                        (Object input) -> FFMPEG.sVideo(test),
-                        (Object input) -> FFMPEG.cCodec(testInt, test+"02"),
-                        (Object input) -> FFMPEG.sVideo(test+"03")
+                List<Function<String[], String[]>> functions = List.of(
+                        input -> FFMPEG.sVideo(test),
+                        input -> FFMPEG.cCodec(testInt, test+"02"),
+                        input -> FFMPEG.sVideo(test+"03")
                 );
 
                 System.out.println("Command: " + String.join(" ", Pipeline.biLambda(functions, CMD::concat)));

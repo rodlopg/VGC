@@ -30,7 +30,7 @@ public class FFMPEG {
     }
 
     public static String[] copy(int format){
-        return new String[]{"-c:" + Format.getIFormat(format), "copy"};
+        return new String[]{"-c:" + Format.getFile(format), "copy"};
     }
 
     public static String[] sVideo(String newSize){
@@ -46,15 +46,15 @@ public class FFMPEG {
     }
 
     public static String[] lxcEncode(int format, String codec){
-        return new String[]{"-c:" + Format.getIFormat(format), codec, "-crf", "0", "-preset", "ultrafast"};
+        return new String[]{"-c:" + Format.getFile(format), codec, "-crf", "0", "-preset", "ultrafast"};
     }
 
     public static String[] cCodec(int format, String newCodec){
-        return new String[]{"-codec:" + Format.getIFormat(format), newCodec};
+        return new String[]{"-codec:" + Format.getFile(format), newCodec};
     }
 
-    public static String[] pixelFormat(int format){ return new String[]{"-pix_fmt", Format.getPFormat(format)}; }
-    public static String[] pixelFormat(){ return pixelFormat(0); }
+    public static String[] pixelFormat(int format){ return new String[]{"-pix_fmt", Format.getPixel(format)}; }
+    public static String[] pixelFormat(){ return FFMPEG.pixelFormat(0); }
 
     public static String[] loopImg(int duration, String codec, String filePath){
         String sDuration = Integer.toString(duration);
@@ -62,7 +62,7 @@ public class FFMPEG {
         List<Function<String[], String[]>> functions = List.of(
                 input -> new String[]{"-loop", "1"},
                 input -> FFMPEG.input(filePath),
-                input -> FFMPEG.lxcEncode(0, Format.getCFormat(0,0)),
+                input -> FFMPEG.lxcEncode(0, Format.getCodec(0,0)),
                 input -> new String[]{"-t", sDuration},
                 input -> FFMPEG.pixelFormat()
         );

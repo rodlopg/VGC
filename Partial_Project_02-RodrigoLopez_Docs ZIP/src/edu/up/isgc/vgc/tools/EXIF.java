@@ -12,32 +12,32 @@ public class EXIF {
 
     public static String getWidth(String filePath) {
         String[] commands = new String[]{exePath, "-ImageWidth", filePath};
-        return CMD.trimFrom(CMD.expect(commands), ":");
+        return CMD.normalize(commands, ":");
     }
 
     public static String getHeight(String filePath) {
         String[] commands = new String[]{exePath, "-ImageHeight", filePath};
-        return CMD.trimFrom(CMD.expect(commands), ":");
+        return CMD.normalize(commands, ":");
     }
 
     public static String getDate(String filePath) {
         String[] commands = new String[]{exePath, "-CreateDate", filePath};
-        return CMD.trimFrom(CMD.expect(commands), ":");
+        return CMD.normalize(commands, ":");
     }
 
     public static String getDuration(String filePath) {
         String[] commands = new String[]{exePath, "-Duration", filePath};
-        return CMD.trimFrom(CMD.expect(commands), ":");
+        return CMD.normalize(commands, ":");
     }
 
     public static String getType(String filePath) {
         String[] commands = new String[]{exePath, "-MIMEType", filePath};
-        return CMD.trimFrom(CMD.expect(commands), ":");
+        return CMD.normalize(commands, ":");
     }
 
     public static String getCodec(String filePath) {
         String[] commands = new String[]{exePath, "-CodecID", filePath};
-        return CMD.trimFrom(CMD.expect(commands), ":");
+        return CMD.normalize(commands, ":");
     }
 
 }

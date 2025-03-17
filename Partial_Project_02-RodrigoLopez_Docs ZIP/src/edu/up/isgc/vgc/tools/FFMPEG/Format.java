@@ -41,7 +41,9 @@ public class Format {
             }
     };
 
-    public static String getIFormat(int format) { return iFormat[format % Format.iFormat.length]; }
-    public static String getPFormat(int format) { return pFormat[format % Format.pFormat.length]; }
-    public static String getCFormat(int iFormat, int format) { return cFormat[iFormat % Format.iFormat.length][format % Format.cFormat.length]; }
+    public static String getFile(int format) { return iFormat[format % Format.iFormat.length]; }
+    public static String getPixel(int format) { return pFormat[format % Format.pFormat.length]; }
+    public static String getCodec(int iFormat, int format) {
+        return cFormat[iFormat % Format.iFormat.length][format % Format.cFormat.length];
+    }
 }
