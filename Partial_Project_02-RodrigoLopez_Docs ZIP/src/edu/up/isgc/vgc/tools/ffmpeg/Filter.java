@@ -14,24 +14,29 @@ public class Filter {
         return result.toString();
     }
 
-    public static String[] getStream(int index, int iFormat, int stream){
+    public static String getStream(int index, int iFormat, int stream){
         String sIndex = Integer.toString(index);
         String sStream = Integer.toString(stream);
-        return new String[]{"[", sIndex, ":", Format.getFile(iFormat), ":", sStream, "]"};
+        String[] preResult = new String[]{sIndex, Format.getFile(iFormat), sStream};
+        return "[" + Filter.join(preResult, ":") + "]";
     }
 
     public static String[] simple(int iFormat, String[] input) {
         return CMD.concat(new String[]{"-"+ Format.getFile(iFormat) +"f"}, input);
     }
 
-    public static String[] complex(){
+    public static String[] complex(int amount, String filter){
         return new String[]{"-filter_complex", };
+    }
+
+    public static String addToComplex(int index, int iFormat, int stream, String filter){
+        return getStream(index, iFormat, stream) + filter + "[" + iFormat + index + "]";
     }
 
     public static String sVideo(String newSize, int forceRatio, int interpolation){
         String size = "scale=" + newSize;
-        String ratio = ":force_original_aspect_ratio=" + (forceRatio == 0 ? "decrease" : "increase");
-        String interp = (interpolation == 1 ? ":flags=bicubic" : null);
+        String ratio = "force_original_aspect_ratio=" + (forceRatio == 0 ? "decrease" : "increase");
+        String interp = (interpolation == 1 ? "flags=bicubic" : null);
         String[] parameters = new String[]{size, ratio, interp};
         return Filter.join(parameters, ":");
     }
