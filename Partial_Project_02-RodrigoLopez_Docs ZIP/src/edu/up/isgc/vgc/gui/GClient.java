@@ -1,10 +1,11 @@
 package edu.up.isgc.vgc.gui;
+
 import edu.up.isgc.vgc.Component;
 import edu.up.isgc.vgc.graphic.Image;
 import edu.up.isgc.vgc.graphic.Video;
 import edu.up.isgc.vgc.tools.CMD;
 import edu.up.isgc.vgc.tools.EXIF;
-import edu.up.isgc.vgc.tools.FFMPEG.FFMPEG;
+import edu.up.isgc.vgc.tools.ffmpeg.*;
 import javafx.application.Application;
 import javafx.stage.Stage;
 import javafx.stage.FileChooser;
@@ -15,7 +16,6 @@ import java.io.File;
 import java.util.Set;
 import java.util.List;
 import java.util.function.Function;
-
 import edu.up.isgc.vgc.tools.*;
 
 public class GClient extends Application{
@@ -70,9 +70,7 @@ public class GClient extends Application{
                 String test = "TEST";
                 int testInt = 0;
                 List<Function<String[], String[]>> functions = List.of(
-                        input -> FFMPEG.sVideo(test),
-                        input -> FFMPEG.cCodec(testInt, test+"02"),
-                        input -> FFMPEG.sVideo(test+"03")
+                        input -> FFMPEG.cCodec(testInt, test+"02")
                 );
 
                 System.out.println("Command: " + String.join(" ", Pipeline.biLambda(functions, CMD::concat)));

@@ -1,12 +1,10 @@
-package edu.up.isgc.vgc.tools.FFMPEG;
+package edu.up.isgc.vgc.tools.ffmpeg;
 
 import java.util.List;
 import java.util.function.Function;
 
 import edu.up.isgc.vgc.tools.CMD;
 import edu.up.isgc.vgc.tools.Pipeline;
-
-import static edu.up.isgc.vgc.tools.FFMPEG.Format.*;
 
 public class FFMPEG {
 
@@ -37,10 +35,6 @@ public class FFMPEG {
 
     public static String[] copy(int format){
         return new String[]{"-c:" + Format.getFile(format), "copy"};
-    }
-
-    public static String[] sVideo(String newSize){
-        return new String[]{"-vf", "scale:" + newSize};
     }
 
     public static String[] cFormat(int format){

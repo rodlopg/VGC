@@ -1,4 +1,4 @@
-package edu.up.isgc.vgc.tools.FFMPEG;
+package edu.up.isgc.vgc.tools.ffmpeg;
 
 public class Format {
     private final static String[] iFormat = new String[]{"v", "a", "s"};
