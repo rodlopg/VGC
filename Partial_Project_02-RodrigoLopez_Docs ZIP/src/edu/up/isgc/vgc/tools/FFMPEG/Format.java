@@ -41,9 +41,33 @@ public class Format {
             }
     };
 
-    public static String getFile(int format) { return iFormat[format % Format.iFormat.length]; }
-    public static String getPixel(int format) { return pFormat[format % Format.pFormat.length]; }
+    private final static String[] presets = {
+            "ultrafast",  // Fastest encoding speed, but largest file size and lowest compression
+            "superfast",  // Very fast encoding, slightly better compression than ultrafast
+            "veryfast",   // Fast encoding, good for quick processing with larger files
+            "faster",     // Still fast, but with slightly better compression efficiency
+            "fast",       // Good balance between speed and compression
+            "medium",     // Default preset, balancing speed and quality
+            "slow",       // Slower encoding, but improved compression and smaller file size
+            "slower",     // Very slow encoding, high compression efficiency, smaller file
+            "veryslow"    // Slowest encoding, best compression, highest quality, smallest file
+    };
+
+    private final static String[] crf = {
+            "0",    // 0 → Lossless (highest quality, very large file)
+            "20",   // 18-22 → Visually lossless (very high quality)
+            "25",   // 23-28 → Good balance of quality and file size (default range)
+            "32",   // 29-35 → Noticeable compression, lower quality
+            "51"    // 51 → Worst quality (smallest file)
+    };
+
+
+
+    public static String getFile(int format) { return Format.iFormat[format % Format.iFormat.length]; }
+    public static String getPixel(int format) { return Format.pFormat[format % Format.pFormat.length]; }
     public static String getCodec(int iFormat, int format) {
-        return cFormat[iFormat % Format.iFormat.length][format % Format.cFormat.length];
+        return Format.cFormat[iFormat % Format.iFormat.length][format % Format.cFormat.length];
     }
+    public static String getPreset(int preset) { return Format.presets[preset % Format.presets.length]; }
+    public static String getCRF(int crf) { return Format.crf[crf % Format.crf.length]; }
 }

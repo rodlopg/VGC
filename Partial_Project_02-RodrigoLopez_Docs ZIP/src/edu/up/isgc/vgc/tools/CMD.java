@@ -1,8 +1,6 @@
 package edu.up.isgc.vgc.tools;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
@@ -59,8 +57,14 @@ public class CMD{
         return input;
     }
 
-    public static void cwTextFile(String[] text){
-
+    public static void writeTextFile(String filename, String[] text){
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(filename + ".txt"))) {
+            for (String line : text) {
+                writer.write(line);
+                writer.newLine();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
-
 }
