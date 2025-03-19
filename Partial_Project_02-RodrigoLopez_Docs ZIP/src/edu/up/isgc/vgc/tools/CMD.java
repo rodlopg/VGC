@@ -3,12 +3,23 @@ package edu.up.isgc.vgc.tools;
 import java.io.*;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
 public class CMD{
     public static String[] concat(String[] a, String[] b) {
         return Stream.concat(Arrays.stream(a), Arrays.stream(b)).toArray(String[]::new);
+    }
+
+    public static String join(String[] array, String delimiter){
+        StringBuilder result = new StringBuilder();
+        for(int i = 0; i < array.length; i++){
+            result.append(array[i]);
+
+            if(i < array.length - 1){ result.append(delimiter); }
+        }
+        return result.toString();
     }
 
     public static void run(String[] command){

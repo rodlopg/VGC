@@ -4,10 +4,11 @@ import java.util.ArrayList;
 import java.util.Collections;
 
 public abstract class Component implements Comparable<Component>{
+    private static int[] maxResolution = new int[]{0,0};
     private int width;
     private int height;
     private Double duration;
-    private String type, path, date=" ";
+    private String type, path, date;
     private static int compAmount = 0;
     private static ArrayList<Component> components = new ArrayList<Component>();
 
@@ -19,6 +20,14 @@ public abstract class Component implements Comparable<Component>{
         this.setType(type);
         this.setPath(path);
         Component.addComponent(this);
+    }
+
+    public static int[] getMaxResolution() {
+        return Component.maxResolution;
+    }
+
+    public static void setMaxResolution(int[] maxResolution) {
+        Component.maxResolution = maxResolution;
     }
 
     public abstract void printAttributes();
@@ -90,6 +99,9 @@ public abstract class Component implements Comparable<Component>{
     private static void addComponent(Component component) {
         components.add(component);
         Component.setCompAmount(Component.getComponents().size());
+        if(component.getWidth() > maxResolution[0] && component.getHeight() > maxResolution[1]) {
+            Component.setMaxResolution(new int[]{component.getWidth(), component.getHeight()});
+        }
     }
 
     @Override

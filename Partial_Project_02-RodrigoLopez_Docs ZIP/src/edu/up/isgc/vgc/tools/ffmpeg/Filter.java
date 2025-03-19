@@ -3,30 +3,24 @@ package edu.up.isgc.vgc.tools.ffmpeg;
 import edu.up.isgc.vgc.tools.CMD;
 
 public class Filter {
-    public static String join(String[] array, String delimiter){
-        StringBuilder result = new StringBuilder();
-
-        for(int i = 0; i < array.length; i++){
-            result.append(array[i]);
-
-            if(i < array.length - 1){ result.append(delimiter); }
-        }
-        return result.toString();
-    }
-
     public static String getStream(int index, int iFormat, int stream){
         String sIndex = Integer.toString(index);
         String sStream = Integer.toString(stream);
         String[] preResult = new String[]{sIndex, Format.getFile(iFormat), sStream};
-        return "[" + Filter.join(preResult, ":") + "]";
+        return "[" + CMD.join(preResult, ":") + "]";
     }
 
     public static String[] simple(int iFormat, String[] input) {
         return CMD.concat(new String[]{"-"+ Format.getFile(iFormat) +"f"}, input);
     }
 
-    public static String[] complex(int amount, String filter){
-        return new String[]{"-filter_complex", };
+    public static String[] complex(int amount, int iFormat, int stream, String filter){
+        String[] resultFilter = new String[amount];
+        for(int i = 0; i < amount; i++){
+            resultFilter[i] = Filter.addToComplex(i, iFormat, stream, filter);
+        }
+
+        return new String[]{"-filter_complex", CMD.join(resultFilter, ";")};
     }
 
     public static String addToComplex(int index, int iFormat, int stream, String filter){
@@ -38,7 +32,7 @@ public class Filter {
         String ratio = "force_original_aspect_ratio=" + (forceRatio == 0 ? "decrease" : "increase");
         String interp = (interpolation == 1 ? "flags=bicubic" : null);
         String[] parameters = new String[]{size, ratio, interp};
-        return Filter.join(parameters, ":");
+        return CMD.join(parameters, ":");
     }
 
     public static String setPTS(){
