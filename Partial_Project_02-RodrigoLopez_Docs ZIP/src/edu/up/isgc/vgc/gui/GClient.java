@@ -74,6 +74,8 @@ public class GClient extends Application{
                 );
 
                 System.out.println("Command: " + String.join(" ", Pipeline.biLambda(functions, CMD::concat)));
+                Filter[] filters = new Filter[]{new Filter(5, 0, 0, "TESTING OUT"), new Filter(3, 1, 5, "OUT TEST")};
+                Filter.complex(filters);
             }
         });
 

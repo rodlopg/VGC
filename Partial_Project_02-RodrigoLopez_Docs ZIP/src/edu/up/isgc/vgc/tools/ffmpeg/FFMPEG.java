@@ -45,10 +45,10 @@ public class FFMPEG {
         return new String[]{"-r", newRate};
     }
 
-    public static String[] lxcEncode(int format, int codec, int crf, int preset){
+    public static String[] lxcEncode(int iFormat, int codec, int crf, int preset){
         List<Function<String[], String[]>> functions = List.of(
-                input -> new String[]{"-c:" + Format.getFile(format)},
-                input -> new String[]{Format.getCodec(format, codec)},
+                input -> new String[]{"-c:" + Format.getFile(iFormat)},
+                input -> new String[]{Format.getCodec(iFormat, codec)},
                 input -> FFMPEG.crf(crf),
                 input -> FFMPEG.preset(preset)
         );
@@ -86,14 +86,13 @@ public class FFMPEG {
 
     public static String[] normalize(int amount, int iFormat, int cFormat, String newSize, String[] inputFiles){
         String[] filter = new String[]{Filter.sVideo(newSize, 0, 1), Filter.setPTS()};
-
+        Filter[] filters = new Filter[]{new Filter(amount, iFormat, 0, CMD.join(filter, ","))};
         List<Function<String[], String[]>> functions = List.of(
                 input -> FFMPEG.inputMany(inputFiles),
-                input -> new String[]{"-filter_complex", "[0:v:0]scale=1280:720:force_original_aspect_ratio=decrease,setpts=PTS-STARTPTS[v0];"},
-                input -> Filter.complex(amount, iFormat, 0, CMD.join(filter, ",")),
+                input -> Filter.complex(filters),
                 input -> FFMPEG.mapOutput(0),
                 input -> FFMPEG.mapOutput(1),
-                input -> FFMPEG.lxcEncode(0,1, 18,8),
+                input -> FFMPEG.lxcEncode(iFormat,cFormat, 18,8),
                 input -> new String[]{"-c:a", "aac", "-b:a", "192k", "output.mp4"}
         );
 
