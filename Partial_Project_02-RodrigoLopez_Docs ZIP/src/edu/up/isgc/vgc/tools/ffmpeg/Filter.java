@@ -7,13 +7,16 @@ import java.util.Arrays;
 import java.util.List;
 
 public class Filter {
-    private int amount, iFormat, stream;
+    private static int fAmount = 0;
+    private int amount, iFormat, stream, identifier;
     private String filter;
 
     public Filter(int amount, int iFormat, int stream, String filter) {
         this.setAmount(amount);
         this.setiFormat(iFormat);
         this.setStream(stream);
+        this.setIdentifier(fAmount);
+        Filter.setfAmount(Filter.getfAmount()+1);
         this.setFilter(filter);
     }
 
@@ -28,12 +31,16 @@ public class Filter {
         return CMD.concat(new String[]{"-"+ Format.getFile(iFormat) +"f"}, input);
     }
 
+    public static String addToComplex(int identifier, int index, int iFormat, int stream, String filter){
+        return getStream(index, iFormat, stream) + filter + "[" + Format.getFile(iFormat) + + identifier + index + "]";
+    }
+
     public static String[] complex(Filter[] filters){
         List<String> list = new ArrayList<String>();
 
         for(Filter f : filters){
             for(int j = 0; j < f.getAmount(); j++){
-                list.add(Filter.addToComplex(j, f.getiFormat(), f.getStream(), f.getFilter()));
+                list.add(Filter.addToComplex(f.getIdentifier(), j, f.getiFormat(), f.getStream(), f.getFilter()));
             }
         }
 
@@ -42,10 +49,6 @@ public class Filter {
         String finalFilter = Filter.formatFilter(CMD.join(resultFilter, ";"));
         System.out.println(finalFilter);
         return new String[]{"-filter_complex", finalFilter};
-    }
-
-    public static String addToComplex(int index, int iFormat, int stream, String filter){
-        return getStream(index, iFormat, stream) + filter + "[" + Format.getFile(iFormat) + index + "]";
     }
 
     public static String formatFilter(String filter){
@@ -91,6 +94,22 @@ public class Filter {
 
     public void setStream(int stream) {
         this.stream = stream;
+    }
+
+    public int getIdentifier() {
+        return identifier;
+    }
+
+    public void setIdentifier(int identifier) {
+        this.identifier = identifier;
+    }
+
+    public static int getfAmount() {
+        return fAmount;
+    }
+
+    public static void setfAmount(int fAmount) {
+        Filter.fAmount = fAmount;
     }
 
     public String getFilter() {
