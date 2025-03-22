@@ -16,6 +16,9 @@ public class Image extends Component implements Edit {
     }
 
     @Override
+    public String returnIFormat(){ return "Image"; }
+
+    @Override
     public Component scale(){
         return this;
     }

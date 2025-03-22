@@ -96,6 +96,8 @@ public abstract class Component implements Comparable<Component>{
         Component.components = components;
     }
 
+    public abstract String returnIFormat();
+
     private static void addComponent(Component component) {
         components.add(component);
         Component.setCompAmount(Component.getComponents().size());

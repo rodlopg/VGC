@@ -6,9 +6,7 @@ import edu.up.isgc.vgc.tools.CMD;
 import edu.up.isgc.vgc.tools.Pipeline;
 
 import java.io.File;
-import java.lang.reflect.Array;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
 
@@ -166,7 +164,7 @@ public class FFMPEG {
                 input -> new String[]{FFMPEG.getExePath(), "ffmpeg"},
                 input -> FFMPEG.inputMany(inputFiles.toArray(new String[0])),
                 input -> Filter.complex(filters.toArray(new Filter[0])),
-        input -> FFMPEG.output(outputPath)
+                input -> FFMPEG.output(outputPath)
         );
 
         // Step 3: Construct the final command using Pipeline.biLambda
@@ -182,26 +180,29 @@ public class FFMPEG {
      * @param audioFormat   The audio format (e.g., aac).
      * @param addSubtitles  Whether to add subtitles.
      */
-    public static void generateVideo(Component[] components, String outputPath, String videoFormat, String audioFormat, boolean addSubtitles) {
+    public static void generateVideo(String videoFormat, String audioFormat, boolean addSubtitles, ArrayList<Component> components, String outputPath) {
         try {
             // Step 1: Prepare input files
             List<String> inputFiles = new ArrayList<>();
             ArrayList<Video> videoComponents = new ArrayList<>();
 
             for (Component component : components) {
-                if (component.getType().equals("Image")) {
+                if (component.returnIFormat().equals("Image")) {
                     // Convert image to video using loopImg
                     String imageVideoPath = outPath + File.separator + "image_" + component.getPath().hashCode() + ".mp4";
-                    String[] loopCommand = loopImg(5, "libx264", component.getPath());
+                    String[] loopCommand = loopImg(5, Format.getCodec(0,0), component.getPath());
                     CMD.run(loopCommand);
 
                     // Replace the image component with the new video component
-                    Video videoComponent = new Video(component.getWidth(), component.getHeight(), component.getDate(), 5.0, "Video", imageVideoPath, "libx264");
+                    Video videoComponent = new Video(component.getWidth(), component.getHeight(), component.getDate(), 5.0, component.getType(), imageVideoPath, Format.getCodec(0,0));
                     videoComponents.add(videoComponent);
                     inputFiles.add(imageVideoPath);
-                } else {
+                } else if (component.returnIFormat().equals("Video")) {
+                    // If the component is already a video, add it directly
                     videoComponents.add((Video) component);
                     inputFiles.add(component.getPath());
+                } else {
+                    throw new IllegalArgumentException("Unsupported component type: " + component.getType());
                 }
             }
 

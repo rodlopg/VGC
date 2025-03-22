@@ -32,7 +32,8 @@ public class EXIF {
 
     public static String getType(String filePath) {
         String[] commands = new String[]{exePath, "-MIMEType", filePath};
-        return CMD.normalize(commands, ":");
+        String subType = CMD.normalize(commands, ":");
+        return CMD.trimFrom(subType, "/");
     }
 
     public static String getCodec(String filePath) {

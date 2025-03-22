@@ -28,6 +28,9 @@ public class Video extends Component implements Edit {
     }
 
     @Override
+    public String returnIFormat(){ return "Video"; }
+
+    @Override
     public Component scale(){
         return this;
     }
