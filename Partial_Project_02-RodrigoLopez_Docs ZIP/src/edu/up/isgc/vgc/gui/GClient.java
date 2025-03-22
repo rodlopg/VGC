@@ -13,10 +13,13 @@ import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.layout.VBox;
 import java.io.File;
+import java.util.Arrays;
 import java.util.Set;
 import java.util.List;
 import java.util.function.Function;
 import edu.up.isgc.vgc.tools.*;
+
+import static edu.up.isgc.vgc.tools.ffmpeg.FFMPEG.lxcEncode;
 
 public class GClient extends Application{
     @Override
@@ -76,6 +79,8 @@ public class GClient extends Application{
                 System.out.println("Command: " + String.join(" ", Pipeline.biLambda(functions, CMD::concat)));
                 Filter[] filters = new Filter[]{new Filter(5, 0, 0, "TESTING OUT"), new Filter(3, 1, 5, "OUT TEST")};
                 Filter.complex(filters);
+                System.out.println(String.join(" ", FFMPEG.lxcEncode(1, 0, 18, 8)));
+
             }
         });
 

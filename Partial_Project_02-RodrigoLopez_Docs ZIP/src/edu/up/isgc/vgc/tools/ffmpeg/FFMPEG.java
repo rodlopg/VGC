@@ -24,7 +24,7 @@ public class FFMPEG {
     }
 
     public static String[] output(String filePath){
-        return new String[]{"-o", filePath};
+        return new String[]{filePath};
     }
 
     public static String[] preset(int preset){ return new String[]{"-preset", Format.getPreset(preset)}; }
@@ -33,8 +33,8 @@ public class FFMPEG {
 
     public static String[] mapOutput(int iFormat){ return new String[]{"-map", "[out"+Format.getFile(iFormat)+"]"}; }
 
-    public static String[] copy(int format){
-        return new String[]{"-c:" + Format.getFile(format), "copy"};
+    public static String[] copy(int iFormat){
+        return new String[]{"-c:" + Format.getFile(iFormat), "copy"};
     }
 
     public static String[] cFormat(int format){
@@ -45,27 +45,42 @@ public class FFMPEG {
         return new String[]{"-r", newRate};
     }
 
-    public static String[] lxcEncode(int iFormat, int codec, int crf, int preset){
-        List<Function<String[], String[]>> functions = List.of(
-                input -> new String[]{"-c:" + Format.getFile(iFormat)},
-                input -> new String[]{Format.getCodec(iFormat, codec)},
-                input -> FFMPEG.crf(crf),
-                input -> FFMPEG.preset(preset)
-        );
-        return Pipeline.biLambda(functions, CMD::concat);
-    }
-    public static String[] lxcEncode(int format, int codec){
-        return lxcEncode(format, codec, 2, 5);
-    }
-
-    public static String[] cCodec(int format, String newCodec){
-        return new String[]{"-codec:" + Format.getFile(format), newCodec};
+    public static String[] lxcEncode(int iFormat, int cFormat, int crf, int preset){
+        if(iFormat != 0){
+            return lxcEncode(iFormat, cFormat);
+        }
+        else {
+            List<Function<String[], String[]>> functions = List.of(
+                    input -> new String[]{"-c:" + Format.getFile(iFormat)},
+                    input -> new String[]{Format.getCodec(iFormat, cFormat)},
+                    input -> FFMPEG.crf(crf),
+                    input -> FFMPEG.preset(preset)
+            );
+            return Pipeline.biLambda(functions, CMD::concat);
+        }
     }
 
-    public static String[] pixelFormat(int format){ return new String[]{"-pix_fmt", Format.getPixel(format)}; }
+    public static String[] lxcEncode(int iFormat, int cFormat){
+        if(iFormat != 0){
+            List<Function<String[], String[]>> functions = List.of(
+                    input -> new String[]{"-c:" + Format.getFile(iFormat)},
+                    input -> new String[]{Format.getCodec(iFormat, cFormat)},
+            );
+            return Pipeline.biLambda(functions, CMD::concat);
+        }
+        else{
+            return lxcEncode(iFormat, cFormat, 2, 5);
+        }
+    }
+
+    public static String[] cCodec(int iFormat, String newCodec){
+        return new String[]{"-codec:" + Format.getFile(iFormat), newCodec};
+    }
+
+    public static String[] pixelFormat(int pFormat){ return new String[]{"-pix_fmt", Format.getPixel(pFormat)}; }
     public static String[] pixelFormat(){ return FFMPEG.pixelFormat(0); }
 
-    public static String[] loopImg(int duration, String codec, String filePath){
+    public static String[] loopImg(int duration, String cFormat, String filePath){
         String sDuration = Integer.toString(duration);
 
         List<Function<String[], String[]>> functions = List.of(
@@ -93,7 +108,10 @@ public class FFMPEG {
                 input -> FFMPEG.mapOutput(0),
                 input -> FFMPEG.mapOutput(1),
                 input -> FFMPEG.lxcEncode(iFormat,cFormat, 18,8),
-                input -> new String[]{"-c:a", "aac", "-b:a", "192k", "output.mp4"}
+                input -> new String[]{"-c:" + Format.getFile(1),
+                                                Format.getCodec(1,0),
+                                                "-b:" + Format.getFile(iFormat),
+                                                Format.bitRate(192, 0), "output.something"}
         );
 
         return Pipeline.biLambda(functions, CMD::concat);

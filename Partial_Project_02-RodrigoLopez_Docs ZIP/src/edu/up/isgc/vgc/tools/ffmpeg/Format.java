@@ -3,6 +3,7 @@ package edu.up.isgc.vgc.tools.ffmpeg;
 public class Format {
     private final static String[] iFormat = new String[]{"v", "a", "s"};
     private final static String[] pFormat = new String[]{"yuv420p", "yuv422p", "yuv444p", "yuvj420p", "rgb24", "rgba", "gray"};
+    private final static String[] bFormat = new String[]{"k", "m", "g"};
     private final static String[][] cFormat = new String[][]{
             // Video Codecs
             {
@@ -53,21 +54,14 @@ public class Format {
             "veryslow"    // Slowest encoding, best compression, highest quality, smallest file
     };
 
-    private final static String[] crf = {
-            "0",    // 0 → Lossless (highest quality, very large file)
-            "20",   // 18-22 → Visually lossless (very high quality)
-            "25",   // 23-28 → Good balance of quality and file size (default range)
-            "32",   // 29-35 → Noticeable compression, lower quality
-            "51"    // 51 → Worst quality (smallest file)
-    };
+    public static String bitRate(int bitRate, int unit){ return bitRate + Format.getBitUnit(unit); }
 
-
-
-    public static String getFile(int format) { return Format.iFormat[format % Format.iFormat.length]; }
-    public static String getPixel(int format) { return Format.pFormat[format % Format.pFormat.length]; }
-    public static String getCodec(int iFormat, int format) {
-        return Format.cFormat[iFormat % Format.iFormat.length][format % Format.cFormat.length];
+    public static String getFile(int iFormat) { return Format.iFormat[iFormat % Format.iFormat.length]; }
+    public static String getPixel(int pFormat) { return Format.pFormat[pFormat % Format.pFormat.length]; }
+    public static String getBitUnit(int bFormat) { return Format.bFormat[bFormat % Format.bFormat.length]; }
+    public static String getCodec(int iFormat, int cFormat) {
+        return Format.cFormat[iFormat % Format.iFormat.length][cFormat % Format.cFormat.length];
     }
     public static String getPreset(int preset) { return Format.presets[preset % Format.presets.length]; }
-    public static String getCRF(int crf) { return Format.crf[crf % Format.crf.length]; }
+    public static String getCRF(int crf) { return Integer.toString(crf % 51); }
 }
