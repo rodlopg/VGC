@@ -1,4 +1,4 @@
-package edu.up.isgc.vgc.ai;
+package edu.up.isgc.vgc.tools;
 
 import edu.up.isgc.vgc.Component;
 import edu.up.isgc.vgc.tools.CMD;
@@ -13,6 +13,15 @@ public class OpenAIIntegration extends Component {
 
     public OpenAIIntegration(int width, int height, String date, Double duration, String type, String path) {
         super(width, height, date, duration, type, path);
+    }
+
+    @Override
+    public void printAttributes() {
+        System.out.println("|Path: " + getPath());
+        System.out.println("||Resolution: " + getWidth() + ":" + getHeight());
+        System.out.println("|||Date: " + getDate());
+        System.out.println("||||Duration: " + getDuration());
+        System.out.println("|||||Type: " + getType());
     }
 
     /**

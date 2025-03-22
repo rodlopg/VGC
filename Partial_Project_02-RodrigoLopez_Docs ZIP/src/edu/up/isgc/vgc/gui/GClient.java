@@ -6,7 +6,7 @@ import edu.up.isgc.vgc.graphic.Video;
 import edu.up.isgc.vgc.tools.CMD;
 import edu.up.isgc.vgc.tools.EXIF;
 import edu.up.isgc.vgc.tools.ffmpeg.FFMPEG;
-import edu.up.isgc.vgc.ai.OpenAIIntegration;
+import edu.up.isgc.vgc.tools.OpenAIIntegration;
 import javafx.application.Application;
 import javafx.stage.Stage;
 import javafx.stage.FileChooser;
