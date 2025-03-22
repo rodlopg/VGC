@@ -15,7 +15,7 @@ import java.util.function.Function;
  */
 public class FFMPEG {
     private static String exePath = "Tools/FFMPEG/ffmpeg.exe";
-    private static String outPath = "Outputs";
+    private static String outPath = "./Outputs";
 
     public static void setExePath(String newPath) {
         FFMPEG.exePath = newPath;
@@ -186,17 +186,26 @@ public class FFMPEG {
             List<String> inputFiles = new ArrayList<>();
             ArrayList<Video> videoComponents = new ArrayList<>();
 
-            for (Component component : components) {
+            for (int i = 0; i < components.size(); i++) {
+                Component component = components.get(i);
                 if (component.returnIFormat().equals("Image")) {
                     // Convert image to video using loopImg
-                    String imageVideoPath = outPath + File.separator + "image_" + component.getPath().hashCode() + ".mp4";
-                    String[] loopCommand = loopImg(5, Format.getCodec(0,0), component.getPath());
-                    CMD.run(loopCommand);
+                    String imageVideoPath = outPath + "/" + "image_" + component.getPath().hashCode() + ".mp4";
+                    String[] loopCommand = loopImg(5, Format.getCodec(0, 0), component.getPath());
+
+                    // Construct the full FFmpeg command
+                    String[] fullLoopCommand = CMD.concat(new String[]{FFMPEG.getExePath()}, loopCommand);
+                    System.out.println("||| LOOOOOP");
+                    CMD.run(fullLoopCommand);
 
                     // Replace the image component with the new video component
-                    Video videoComponent = new Video(component.getWidth(), component.getHeight(), component.getDate(), 5.0, component.getType(), imageVideoPath, Format.getCodec(0,0));
+                    Video videoComponent = new Video(component.getWidth(), component.getHeight(), component.getDate(), 5.0, component.getType(), imageVideoPath, Format.getCodec(0, 0));
                     videoComponents.add(videoComponent);
                     inputFiles.add(imageVideoPath);
+
+                    // Remove the image component from the original list (if needed)
+                    components.remove(i);
+                    i--; // Adjust the index after removal
                 } else if (component.returnIFormat().equals("Video")) {
                     // If the component is already a video, add it directly
                     videoComponents.add((Video) component);
@@ -207,19 +216,22 @@ public class FFMPEG {
             }
 
             // Step 2: Normalize all videos to maxResolution
-            String normalizedOutputPath = outPath + File.separator + "normalized.mp4";
+            String normalizedOutputPath = outPath + "/" + "normalized.mp4";
             String[] normalizeCommand = normalize(inputFiles.size(), 0, 0, Component.getMaxResolution()[0] + ":" + Component.getMaxResolution()[1], inputFiles.toArray(new String[0]));
-            CMD.run(normalizeCommand);
+            String[] fullNormalizeCommand = CMD.concat(new String[]{FFMPEG.getExePath()}, normalizeCommand);
+            System.out.println("@@@@ NORMALIZE");
+            CMD.run(fullNormalizeCommand);
 
             // Step 3: Create a video grid
-            String gridOutputPath = outPath + File.separator + "grid.mp4";
+            String gridOutputPath = outPath + "/" + "grid.mp4";
             String[] gridCommand = createGrid(videoComponents, gridOutputPath);
-            CMD.run(gridCommand);
+            String[] fullGridCommand = CMD.concat(new String[]{FFMPEG.getExePath()}, gridCommand);
+            System.out.println("$$$$$$$$ GRID");
+            CMD.run(fullGridCommand);
 
             // Step 4: Generate the final video
-            String finalOutputPath = outPath + File.separator + outputPath;
+            String finalOutputPath = outPath + "/" + outputPath;
             List<Function<String[], String[]>> functions = List.of(
-                    input -> new String[]{FFMPEG.getExePath(), "ffmpeg"},
                     input -> FFMPEG.input(normalizedOutputPath),
                     input -> FFMPEG.input(gridOutputPath),
                     input -> new String[]{"-c:v", Format.getCodec(0, 0)}, // Apply video codec
@@ -234,9 +246,11 @@ public class FFMPEG {
 
             // Step 5: Construct the final command using Pipeline.biLambda
             String[] command = Pipeline.biLambda(functions, CMD::concat);
+            String[] fullCommand = CMD.concat(new String[]{FFMPEG.getExePath()}, command);
 
             // Step 6: Execute FFMPEG command using CMD.run
-            CMD.run(command);
+            System.out.println("********** FUUUUUUUUUUUUUUUUUUUUUUUULLLLLL");
+            CMD.run(fullCommand);
 
             System.out.println("Video generation process completed. Output: " + finalOutputPath);
         } catch (Exception e) {

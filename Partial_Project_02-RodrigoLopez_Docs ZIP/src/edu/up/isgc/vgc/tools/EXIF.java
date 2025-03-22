@@ -27,7 +27,8 @@ public class EXIF {
 
     public static String getDuration(String filePath) {
         String[] commands = new String[]{exePath, "-Duration", filePath};
-        return CMD.normalize(commands, ":");
+        String subDuration = CMD.normalize(commands, ":");
+        return CMD.trimUntil(subDuration, " ");
     }
 
     public static String getType(String filePath) {

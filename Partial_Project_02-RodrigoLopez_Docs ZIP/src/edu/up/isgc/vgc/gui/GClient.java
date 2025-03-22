@@ -16,6 +16,7 @@ import javafx.scene.layout.VBox;
 import javafx.scene.layout.HBox;
 import javafx.geometry.Insets;
 import java.io.File;
+import java.sql.SQLOutput;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
@@ -60,13 +61,16 @@ public class GClient extends Application {
                         int height = Integer.parseInt(EXIF.getHeight(filePath));
                         String date = EXIF.getDate(filePath);
                         String type = EXIF.getType(filePath);
+                        System.out.println("FILE TYPE: " + type);
 
-                        if (type.equals("Video")) {
+                        if (VIDEO_EXTENSIONS.contains(type)) {
                             Double duration = Double.parseDouble(EXIF.getDuration(filePath));
                             String codec = EXIF.getCodec(filePath);
                             Component newVid = new Video(width, height, date, duration, type, filePath, codec);
-                        } else {
+                        } else if (IMAGE_EXTENSIONS.contains(type)) {
                             Component newImg = new Image(width, height, date, 0.0, type, filePath);
+                        } else{
+                            System.out.println("ERROR: Unsupported image type: " + type);
                         }
 
                         System.out.println("Selected: " + file.getAbsolutePath());

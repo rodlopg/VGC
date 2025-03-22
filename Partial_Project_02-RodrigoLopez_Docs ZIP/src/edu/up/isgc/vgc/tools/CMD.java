@@ -25,6 +25,7 @@ public class CMD{
     public static void run(String[] command){
         final ProcessBuilder builder = new ProcessBuilder();
         try{
+            System.out.println("Executing command: " + CMD.join(command, " "));
             final Process process = builder.command(command).start();
             BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
             System.out.println("Waiting... " + process.waitFor());
@@ -38,6 +39,7 @@ public class CMD{
     public static String expect(String[] command){
         final ProcessBuilder builder = new ProcessBuilder();
         try{
+            System.out.println("Executing command: " + CMD.join(command, " "));
             final Process process = builder.command(command).start();
             BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
             StringBuilder output = new StringBuilder();
@@ -58,6 +60,22 @@ public class CMD{
 
     public static String trimFrom(String output, String trim){
         return output.substring(output.indexOf(trim) + 1).trim();
+    }
+
+    public static String trimUntil(String output, String trim) {
+        // Handle null inputs
+        if (output == null || trim == null) {
+            throw new IllegalArgumentException("Input strings cannot be null.");
+        }
+
+        // Find the index of the trim string
+        int index = output.indexOf(trim);
+
+        // If trim is not found, return the entire output string (trimmed)
+        if (index == -1) { return output.trim(); }
+
+        // Return the substring from the start up to the trim string (trimmed)
+        return output.substring(0, index).trim();
     }
 
     public static String normalize(String[] command, String trim){

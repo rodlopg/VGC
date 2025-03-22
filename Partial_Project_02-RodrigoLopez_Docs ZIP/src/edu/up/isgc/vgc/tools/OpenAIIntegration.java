@@ -49,4 +49,7 @@ public class OpenAIIntegration extends Component {
         };
         return CMD.expect(command);
     }
+
+    @Override
+    public String returnIFormat(){ return "AIImage"; }
 }
