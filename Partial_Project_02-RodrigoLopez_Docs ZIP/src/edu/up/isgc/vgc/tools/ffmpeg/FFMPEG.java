@@ -79,10 +79,10 @@ public class FFMPEG {
                 input -> new String[]{"-loop", "1"},
                 input -> input(filePath),
                 input -> new String[]{"-f", "lavfi"},
-                input -> new String[]{"-i", "aevalsrc=0:d=" + sDuration},  // Removed [silence] label
+                input -> new String[]{"-i", "aevalsrc=0:d=" + sDuration},
                 input -> new String[]{"-t", sDuration},
                 input -> new String[]{"-map", "0:v"},
-                input -> new String[]{"-map", "1:a"},  // Changed to direct audio stream reference
+                input -> new String[]{"-map", "1:a"},
                 input -> new String[]{"-shortest"},
                 input -> lxcEncode(0, 0),
                 input -> new String[]{"-c:a", "aac"},
@@ -101,8 +101,13 @@ public class FFMPEG {
     }
 
     public static String[] normalize(String inputFile, String outputFile, int targetFPS, String newSize) {
+        String[] sizeParts = newSize.split(":");
+        int targetWidth = Integer.parseInt(sizeParts[0]);
+        int targetHeight = Integer.parseInt(sizeParts[1]);
+
         String[] filter = new String[]{
-                Filter.sVideo(newSize, 0, 1) + ":force_divisible_by=2",
+                "scale=" + targetWidth + ":" + targetHeight + ":force_original_aspect_ratio=decrease:flags=bicubic:force_divisible_by=2",
+                "pad=" + targetWidth + ":" + targetHeight + ":(ow-iw)/2:(oh-ih)/2",
                 Filter.setPTS(),
                 Filter.fps(targetFPS)
         };
