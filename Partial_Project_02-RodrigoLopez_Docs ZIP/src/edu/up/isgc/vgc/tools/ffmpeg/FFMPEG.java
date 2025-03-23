@@ -8,6 +8,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public class FFMPEG {
     private static String exePath = new File("Tools/FFMPEG/ffmpeg.exe").getAbsolutePath();
@@ -141,24 +142,49 @@ public class FFMPEG {
 
     public static String[] createGrid(ArrayList<Video> videos, String outputPath) {
         List<Filter> filters = new ArrayList<>();
-        StringBuilder inputs = new StringBuilder();
+        String maxWidth = Integer.toString(Component.getMaxResolution()[0]);
+        String maxHeight = Integer.toString(Component.getMaxResolution()[1]);
 
+        // 1. Create scale+pad filters
         for (int i = 0; i < videos.size(); i++) {
-            String filter = "[" + i + ":v]scale=" + Component.getMaxResolution()[0] + ":" +
-                    Component.getMaxResolution()[1] + ":force_original_aspect_ratio=decrease[v" + i + "]";
+            String filter = String.format(
+                    "[%d:v]scale=%s:%s:force_original_aspect_ratio=decrease," +
+                            "pad=%s:%s:(ow-iw)/2:(oh-ih)/2[v%d];",
+                    i, maxWidth, maxHeight, maxWidth, maxHeight, i
+            );
             filters.add(new Filter(1, 0, 0, filter));
-            inputs.append("[v").append(i).append("]");
         }
 
-        String xstackFilter = inputs.toString() + "xstack=inputs=" + videos.size() +
-                ":layout=0_0|w0_0|0_h0|w0_h0[outv]";
+        // 2. Create xstack filter
+        StringBuilder xstackInputs = new StringBuilder();
+        List<String> positions = new ArrayList<>();
+
+        for (int i = 0; i < videos.size(); i++) {
+            xstackInputs.append("[v").append(i).append("]");
+            int row = i / 2;
+            int col = i % 2;
+
+            // Fixed format specifiers
+            positions.add(String.format("%s_%s",
+                    (col == 0) ? "0" : "w0",
+                    (row == 0) ? "0" : "h0"));
+        }
+
+        String xstackFilter = String.format(
+                "%sxstack=inputs=%d:layout=%s[vout];",
+                xstackInputs.toString(),
+                videos.size(),
+                String.join("|", positions)
+        );
         filters.add(new Filter(1, 0, 0, xstackFilter));
 
+        // 3. Build command
         List<Function<String[], String[]>> functions = List.of(
                 input -> FFMPEG.inputMany(videos.stream().map(v -> v.getPath()).toArray(String[]::new)),
                 input -> Filter.complex(filters.toArray(new Filter[0])),
-                input -> new String[]{"-map", "[outv]"},
-                input -> FFMPEG.lxcEncode(0, 0),
+                input -> new String[]{"-map", "[vout]"},
+                input -> new String[]{"-vsync", "2"},
+                input -> FFMPEG.lxcEncode(0, 0, 18, 0),
                 input -> FFMPEG.output(outputPath)
         );
 

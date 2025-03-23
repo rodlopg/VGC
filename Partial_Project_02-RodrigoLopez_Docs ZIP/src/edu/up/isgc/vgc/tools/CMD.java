@@ -3,47 +3,44 @@ package edu.up.isgc.vgc.tools;
 import java.io.*;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
-public class CMD{
+public class CMD {
     public static String[] concat(String[] a, String[] b) {
         return Stream.concat(Arrays.stream(a), Arrays.stream(b)).toArray(String[]::new);
     }
 
-    public static String join(String[] array, String delimiter){
+    public static String join(String[] array, String delimiter) {
         StringBuilder result = new StringBuilder();
-        for(int i = 0; i < array.length; i++){
+        for (int i = 0; i < array.length; i++) {
             result.append(array[i]);
-
-            if(i < array.length - 1){ result.append(delimiter); }
+            if (i < array.length - 1) {
+                result.append(delimiter);
+            }
         }
         return result.toString();
     }
 
     public static void run(String[] command) {
         ProcessBuilder builder = new ProcessBuilder(command);
-        builder.redirectErrorStream(true); // Merge stdout/stderr
+        builder.redirectErrorStream(true);
 
         try {
             System.out.println("Executing: " + String.join(" ", command));
             Process process = builder.start();
 
-            // Read ALL output lines
             try (BufferedReader reader = new BufferedReader(
                     new InputStreamReader(process.getInputStream()))) {
                 String line;
                 while ((line = reader.readLine()) != null) {
-                    System.out.println("FFmpeg: " + line); // Print progress
+                    System.out.println("FFmpeg: " + line);
                 }
             }
 
-            // Wait for process to finish
             int exitCode = process.waitFor();
             System.out.println("Process exited with code: " + exitCode);
 
-            // Force-terminate if still running
             if (process.isAlive()) {
                 process.destroyForcibly();
             }
@@ -53,9 +50,9 @@ public class CMD{
         }
     }
 
-    public static String expect(String[] command){
+    public static String expect(String[] command) {
         final ProcessBuilder builder = new ProcessBuilder();
-        try{
+        try {
             System.out.println("Executing command: " + CMD.join(command, " "));
             final Process process = builder.command(command).start();
             BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
@@ -71,12 +68,12 @@ public class CMD{
 
             return output.toString().trim();
 
-        }catch(IOException | InterruptedException e){
+        } catch (IOException | InterruptedException e) {
             throw new RuntimeException(e);
         }
     }
 
-    public static String trimFrom(String output, String trim){
+    public static String trimFrom(String output, String trim) {
         return output.substring(output.indexOf(trim) + 1).trim();
     }
 
@@ -86,20 +83,22 @@ public class CMD{
         }
 
         int index = output.indexOf(trim);
-        if (index == -1) { return output.trim(); }
+        if (index == -1) {
+            return output.trim();
+        }
 
         return output.substring(0, index).trim();
     }
 
-    public static String normalize(String[] command, String trim){
+    public static String normalize(String[] command, String trim) {
         return trimFrom(expect(command), trim);
     }
 
-    public static String[] echo(String[] input){
+    public static String[] echo(String[] input) {
         return input;
     }
 
-    public static void writeTextFile(String filename, String[] text){
+    public static void writeTextFile(String filename, String[] text) {
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(filename + ".txt"))) {
             for (String line : text) {
                 writer.write(line);
