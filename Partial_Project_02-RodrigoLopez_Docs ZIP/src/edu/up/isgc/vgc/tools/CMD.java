@@ -7,6 +7,9 @@ import java.util.function.Function;
 import java.util.stream.Stream;
 
 public class CMD {
+    public static String normalizePath(String path) {
+        return "\"" + path.replace('\\', '/').replace("\"", "") + "\"";
+    }
     public static String[] concat(String[] a, String[] b) {
         return Stream.concat(Arrays.stream(a), Arrays.stream(b)).toArray(String[]::new);
     }

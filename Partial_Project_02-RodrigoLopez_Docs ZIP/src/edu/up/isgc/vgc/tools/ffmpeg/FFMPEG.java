@@ -26,11 +26,11 @@ public class FFMPEG {
     }
 
     public static String[] input(String filePath) {
-        return new String[]{"-i", filePath};
+        return new String[]{"-i", CMD.normalizePath(filePath)};
     }
 
     public static String[] output(String filePath) {
-        return new String[]{filePath};
+        return new String[]{CMD.normalizePath(filePath)};
     }
 
     public static String[] preset(int preset) {
@@ -108,7 +108,9 @@ public class FFMPEG {
 
         for (int i = 0; i < inputFiles.length; i++) {
             String inputFile = inputFiles[i];
-            String normalizedOutputPath = outPath + "/normalized" + i + ".mp4";
+            String normalizedOutputPath = CMD.normalizePath(
+                    outPath + File.separator + "normalized" + i + ".mp4"
+            );
             String[] filter = new String[]{
                     Filter.sVideo(newSize, 0, 1),
                     Filter.setPTS(),
@@ -124,7 +126,7 @@ public class FFMPEG {
             );
 
             String[] command = Pipeline.biLambda(functions, CMD::concat);
-            String[] fullCommand = CMD.concat(new String[]{exePath, "-y"}, command);
+            String[] fullCommand = CMD.concat(new String[]{CMD.normalizePath(exePath), "-y"}, command);
             CMD.run(fullCommand);
             normalizedFiles.add(normalizedOutputPath);
         }
@@ -170,7 +172,7 @@ public class FFMPEG {
                 input -> new String[]{"-map", "[vout]"},
                 input -> new String[]{"-r", Integer.toString(targetFPS)},
                 input -> FFMPEG.lxcEncode(0, 0, 18, 0),
-                input -> FFMPEG.output(outputPath)
+                input -> FFMPEG.output(CMD.normalizePath(outputPath))
         );
 
         return Pipeline.biLambda(functions, CMD::concat);
@@ -180,19 +182,30 @@ public class FFMPEG {
         try {
             List<String> inputFiles = new ArrayList<>();
             ArrayList<Video> videoComponents = new ArrayList<>();
-            String targetFPS = "30";
+            int targetFPS = 30;
 
             for (int i = 0; i < components.size(); i++) {
                 Component component = components.get(i);
                 if (component.returnIFormat().equals("Image")) {
-                    String imageVideoPath = outPath + "/image_" + component.getPath().hashCode() + ".mp4";
+                    String imageVideoPath = outPath + File.separator + "image_" +
+                            component.getPath().hashCode() + ".mp4";
                     String[] loopCommand = loopImg(5, Format.getCodec(0, 0), component.getPath());
 
-                    String[] fullLoopCommand = CMD.concat(new String[]{exePath, "-y"}, loopCommand);
+                    String[] fullLoopCommand = CMD.concat(
+                            new String[]{CMD.normalizePath(exePath), "-y"},
+                            loopCommand
+                    );
                     CMD.run(fullLoopCommand);
 
-                    Video videoComponent = new Video(component.getWidth(), component.getHeight(),
-                            component.getDate(), 5.0, component.getType(), imageVideoPath, Format.getCodec(0, 0));
+                    Video videoComponent = new Video(
+                            component.getWidth(),
+                            component.getHeight(),
+                            component.getDate(),
+                            5.0,
+                            component.getType(),
+                            CMD.normalizePath(imageVideoPath),
+                            Format.getCodec(0, 0)
+                    );
                     videoComponents.add(videoComponent);
                     inputFiles.add(imageVideoPath);
                     components.remove(i);
@@ -204,40 +217,51 @@ public class FFMPEG {
             }
 
             int[] maxRes = Component.getMaxResolution();
-            String[] normalizedFiles = normalize(inputFiles.size(), 0, 0,
-                    30, maxRes[0] + ":" + maxRes[1],
-                    inputFiles.toArray(new String[0]));
+            String[] normalizedFiles = normalize(
+                    inputFiles.size(),
+                    0,
+                    0,
+                    targetFPS,
+                    maxRes[0] + ":" + maxRes[1],
+                    inputFiles.stream().map(CMD::normalizePath).toArray(String[]::new)
+            );
 
-            String gridOutputPath = outPath + "/grid.mp4";
-            String[] gridCommand = createGrid(videoComponents, gridOutputPath, 30);
-            String[] fullGridCommand = CMD.concat(new String[]{exePath, "-y"}, gridCommand);
+            String gridOutputPath = outPath + File.separator + "grid.mp4";
+            String[] gridCommand = createGrid(videoComponents, gridOutputPath, targetFPS);
+            String[] fullGridCommand = CMD.concat(
+                    new String[]{CMD.normalizePath(exePath), "-y"},
+                    gridCommand
+            );
             CMD.run(fullGridCommand);
 
-            String finalOutputPath = outPath + "/" + outputPath;
-            String listPath = outPath + "/list.txt";
+            String finalOutputPath = outPath + File.separator + outputPath;
+            String listPath = outPath + File.separator + "list.txt";
 
             try (PrintWriter writer = new PrintWriter(listPath)) {
                 for (String file : normalizedFiles) {
-                    writer.println("file '" + file + "'");
+                    writer.println("file '" + file.replace("\"", "") + "'");
                 }
-                writer.println("file '" + gridOutputPath + "'");
+                writer.println("file '" + gridOutputPath.replace("\"", "") + "'");
             }
 
             List<Function<String[], String[]>> functions = new ArrayList<>(List.of(
-                    input -> new String[]{"-f", "concat", "-safe", "0", "-i", listPath},
-                    input -> new String[]{"-r", targetFPS},
+                    input -> new String[]{"-f", "concat", "-safe", "0", "-i", CMD.normalizePath(listPath)},
+                    input -> new String[]{"-r", Integer.toString(targetFPS)},
                     input -> FFMPEG.lxcEncode(0, 0),
                     input -> FFMPEG.lxcEncode(1, 0)
             ));
 
             if (addSubtitles) {
-                functions.add(1, input -> new String[]{"-vf", "subtitles=" + inputFiles.get(0)});
+                functions.add(1, input -> new String[]{"-vf", "subtitles=" + CMD.normalizePath(inputFiles.get(0))});
             }
 
-            functions.add(input -> FFMPEG.output(finalOutputPath));
+            functions.add(input -> FFMPEG.output(CMD.normalizePath(finalOutputPath)));
 
             String[] command = Pipeline.biLambda(functions, CMD::concat);
-            String[] fullCommand = CMD.concat(new String[]{exePath, "-y"}, command);
+            String[] fullCommand = CMD.concat(
+                    new String[]{CMD.normalizePath(exePath), "-y"},
+                    command
+            );
             CMD.run(fullCommand);
 
             Files.deleteIfExists(Paths.get(listPath));
