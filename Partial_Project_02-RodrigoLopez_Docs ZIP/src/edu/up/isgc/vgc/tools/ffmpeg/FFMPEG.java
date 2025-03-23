@@ -1,7 +1,6 @@
 package edu.up.isgc.vgc.tools.ffmpeg;
 
 import edu.up.isgc.vgc.Component;
-import edu.up.isgc.vgc.graphic.Video;
 import edu.up.isgc.vgc.tools.CMD;
 import edu.up.isgc.vgc.tools.Pipeline;
 import java.io.File;
@@ -9,8 +8,8 @@ import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
+import java.util.UUID;
 import java.util.function.Function;
 
 public class FFMPEG {
@@ -71,10 +70,6 @@ public class FFMPEG {
         return lxcEncode(iFormat, cFormat, 18, 0);
     }
 
-    public static String[] cCodec(int iFormat, String newCodec) {
-        return new String[]{"-codec:" + Format.getFile(iFormat), newCodec};
-    }
-
     public static String[] pixelFormat(int pFormat) {
         return new String[]{"-pix_fmt", Format.getPixel(pFormat)};
     }
@@ -83,14 +78,15 @@ public class FFMPEG {
         return FFMPEG.pixelFormat(0);
     }
 
-    public static String[] loopImg(int duration, String cFormat, String filePath) {
+    public static String[] loopImg(int duration, String filePath, String outputPath) {
         String sDuration = Integer.toString(duration);
         List<Function<String[], String[]>> functions = List.of(
                 input -> new String[]{"-loop", "1"},
                 input -> FFMPEG.input(filePath),
                 input -> new String[]{"-t", sDuration},
                 input -> FFMPEG.lxcEncode(0, 0),
-                input -> FFMPEG.pixelFormat()
+                input -> FFMPEG.pixelFormat(),
+                input -> FFMPEG.output(outputPath)
         );
         return Pipeline.biLambda(functions, CMD::concat);
     }
@@ -103,72 +99,57 @@ public class FFMPEG {
         return inputCommand;
     }
 
-    public static String[] normalize(int amount, int iFormat, int cFormat, int targetFPS, String newSize, String[] inputFiles) {
-        List<String> normalizedFiles = new ArrayList<>();
+    public static String[] normalize(String inputFile, String outputFile, int targetFPS, String newSize) {
+        String[] filter = new String[]{
+                Filter.sVideo(newSize, 0, 1) + ":force_divisible_by=2",
+                Filter.setPTS(),
+                Filter.fps(targetFPS)
+        };
 
-        for (int i = 0; i < inputFiles.length; i++) {
-            String inputFile = inputFiles[i];
-            String normalizedOutputPath = CMD.normalizePath(
-                    outPath + File.separator + "normalized" + i + ".mp4"
-            );
-            String[] filter = new String[]{
-                    Filter.sVideo(newSize, 0, 1),
-                    Filter.setPTS(),
-                    Filter.fps(targetFPS)
-            };
+        List<Function<String[], String[]>> functions = List.of(
+                input -> FFMPEG.input(inputFile),
+                input -> new String[]{"-vf", CMD.join(filter, ",")},
+                input -> FFMPEG.cPRate(targetFPS),
+                input -> FFMPEG.lxcEncode(0, 0),
+                input -> FFMPEG.output(outputFile)
+        );
 
-            List<Function<String[], String[]>> functions = List.of(
-                    input -> FFMPEG.input(inputFile),
-                    input -> new String[]{"-vf", CMD.join(filter, ",")},
-                    input -> FFMPEG.cPRate(targetFPS),
-                    input -> FFMPEG.lxcEncode(iFormat, cFormat),
-                    input -> FFMPEG.output(normalizedOutputPath)
-            );
-
-            String[] command = Pipeline.biLambda(functions, CMD::concat);
-            String[] fullCommand = CMD.concat(new String[]{CMD.normalizePath(exePath), "-y"}, command);
-            CMD.run(fullCommand);
-            normalizedFiles.add(normalizedOutputPath);
-        }
-
-        return normalizedFiles.toArray(new String[0]);
+        return Pipeline.biLambda(functions, CMD::concat);
     }
 
-    public static String[] createGrid(ArrayList<Video> videos, String outputPath, int targetFPS) {
-        int[] maxRes = Component.getMaxResolution();
-        String maxWidth = Integer.toString(maxRes[0]);
-        String maxHeight = Integer.toString(maxRes[1]);
+    public static String[] createGrid(String[] inputFiles, String outputPath, int targetFPS, int[] maxRes) {
         StringBuilder filterComplex = new StringBuilder();
+        int numInputs = inputFiles.length;
 
-        for (int i = 0; i < videos.size(); i++) {
+        for (int i = 0; i < numInputs; i++) {
             filterComplex.append(String.format(
-                    "[%d:v]scale=%s:%s:force_original_aspect_ratio=decrease," +
-                            "pad=%s:%s:(ow-iw)/2:(oh-ih)/2,fps=%s[v%d];",
-                    i, maxWidth, maxHeight, maxWidth, maxHeight, targetFPS, i
+                    "[%d:v]scale=%d:%d:force_original_aspect_ratio=decrease:flags=bicubic:force_divisible_by=2," +
+                            "pad=%d:%d:(ow-iw)/2:(oh-ih)/2,fps=%d[v%d];",
+                    i, maxRes[0], maxRes[1], maxRes[0], maxRes[1], targetFPS, i
             ));
         }
 
-        int cols = (int) Math.ceil(Math.sqrt(videos.size()));
+        int cols = (int) Math.ceil(Math.sqrt(numInputs));
         List<String> positions = new ArrayList<>();
         List<String> inputs = new ArrayList<>();
 
-        for (int i = 0; i < videos.size(); i++) {
+        for (int i = 0; i < numInputs; i++) {
             inputs.add("[v" + i + "]");
             int row = i / cols;
             int col = i % cols;
-            String xPos = col == 0 ? "0" : "w" + (col - 1);
-            String yPos = row == 0 ? "0" : "h" + (row - 1);
+            String xPos = col == 0 ? "0" : String.format("w0*%d", col);
+            String yPos = row == 0 ? "0" : String.format("h0*%d", row);
             positions.add(xPos + "_" + yPos);
         }
 
         filterComplex.append(String.join("", inputs))
-                .append("xstack=inputs=").append(videos.size())
+                .append("xstack=inputs=").append(numInputs)
                 .append(":layout=").append(String.join("|", positions))
                 .append(",fps=").append(targetFPS).append("[vout]");
 
         List<Function<String[], String[]>> functions = List.of(
-                input -> FFMPEG.inputMany(videos.stream().map(Video::getPath).toArray(String[]::new)),
-                input -> new String[]{"-filter_complex", filterComplex.toString().replaceAll(";{2,}", ";")},
+                input -> FFMPEG.inputMany(inputFiles),
+                input -> new String[]{"-filter_complex", filterComplex.toString()},
                 input -> new String[]{"-map", "[vout]"},
                 input -> new String[]{"-r", Integer.toString(targetFPS)},
                 input -> FFMPEG.lxcEncode(0, 0, 18, 0),
@@ -178,95 +159,93 @@ public class FFMPEG {
         return Pipeline.biLambda(functions, CMD::concat);
     }
 
-    public static void generateVideo(String videoFormat, String audioFormat, boolean addSubtitles, ArrayList<Component> components, String outputPath) {
+    public static void generateVideo(String outputFileName, ArrayList<Component> components, boolean addSubtitles) {
+        List<String> tempFiles = new ArrayList<>();
         try {
-            List<String> inputFiles = new ArrayList<>();
-            ArrayList<Video> videoComponents = new ArrayList<>();
             int targetFPS = 30;
-
-            for (int i = 0; i < components.size(); i++) {
-                Component component = components.get(i);
-                if (component.returnIFormat().equals("Image")) {
-                    String imageVideoPath = outPath + File.separator + "image_" +
-                            component.getPath().hashCode() + ".mp4";
-                    String[] loopCommand = loopImg(5, Format.getCodec(0, 0), component.getPath());
-
-                    String[] fullLoopCommand = CMD.concat(
-                            new String[]{CMD.normalizePath(exePath), "-y"},
-                            loopCommand
-                    );
-                    CMD.run(fullLoopCommand);
-
-                    Video videoComponent = new Video(
-                            component.getWidth(),
-                            component.getHeight(),
-                            component.getDate(),
-                            5.0,
-                            component.getType(),
-                            CMD.normalizePath(imageVideoPath),
-                            Format.getCodec(0, 0)
-                    );
-                    videoComponents.add(videoComponent);
-                    inputFiles.add(imageVideoPath);
-                    components.remove(i);
-                    i--;
-                } else if (component.returnIFormat().equals("Video")) {
-                    videoComponents.add((Video) component);
-                    inputFiles.add(component.getPath());
-                }
-            }
-
             int[] maxRes = Component.getMaxResolution();
-            String[] normalizedFiles = normalize(
-                    inputFiles.size(),
-                    0,
-                    0,
-                    targetFPS,
-                    maxRes[0] + ":" + maxRes[1],
-                    inputFiles.stream().map(CMD::normalizePath).toArray(String[]::new)
-            );
+            // Cap maximum resolution to prevent memory issues
+            maxRes[0] = Math.min(maxRes[0], 1920);
+            maxRes[1] = Math.min(maxRes[1], 1080);
 
-            String gridOutputPath = outPath + File.separator + "grid.mp4";
-            String[] gridCommand = createGrid(videoComponents, gridOutputPath, targetFPS);
-            String[] fullGridCommand = CMD.concat(
-                    new String[]{CMD.normalizePath(exePath), "-y"},
-                    gridCommand
-            );
-            CMD.run(fullGridCommand);
-
-            String finalOutputPath = outPath + File.separator + outputPath;
-            String listPath = outPath + File.separator + "list.txt";
-
-            try (PrintWriter writer = new PrintWriter(listPath)) {
-                for (String file : normalizedFiles) {
-                    writer.println("file '" + file.replace("\"", "") + "'");
+            List<String> videoPaths = new ArrayList<>();
+            for (Component component : components) {
+                if (component.returnIFormat().equals("Image")) {
+                    String outputPath = outPath + File.separator + "image_" + UUID.randomUUID() + ".mp4";
+                    String[] loopCommand = loopImg(5, component.getPath(), outputPath);
+                    String[] fullCommand = CMD.concat(new String[]{CMD.normalizePath(exePath), "-y"}, loopCommand);
+                    if (!CMD.run(fullCommand)) {
+                        throw new RuntimeException("Failed to create image video: " + component.getPath());
+                    }
+                    videoPaths.add(outputPath);
+                    tempFiles.add(outputPath);
+                } else if (component.returnIFormat().equals("Video")) {
+                    videoPaths.add(component.getPath());
                 }
-                writer.println("file '" + gridOutputPath.replace("\"", "") + "'");
             }
 
-            List<Function<String[], String[]>> functions = new ArrayList<>(List.of(
-                    input -> new String[]{"-f", "concat", "-safe", "0", "-i", CMD.normalizePath(listPath)},
-                    input -> new String[]{"-r", Integer.toString(targetFPS)},
-                    input -> FFMPEG.lxcEncode(0, 0),
-                    input -> FFMPEG.lxcEncode(1, 0)
-            ));
-
-            if (addSubtitles) {
-                functions.add(1, input -> new String[]{"-vf", "subtitles=" + CMD.normalizePath(inputFiles.get(0))});
+            List<String> normalizedPaths = new ArrayList<>();
+            for (String videoPath : videoPaths) {
+                String outputPath = outPath + File.separator + "normalized_" + UUID.randomUUID() + ".mp4";
+                String[] normCommand = normalize(
+                        videoPath,
+                        outputPath,
+                        targetFPS,
+                        maxRes[0] + ":" + maxRes[1]
+                );
+                String[] fullCommand = CMD.concat(new String[]{CMD.normalizePath(exePath), "-y"}, normCommand);
+                if (!CMD.run(fullCommand)) {
+                    throw new RuntimeException("Failed to normalize video: " + videoPath);
+                }
+                normalizedPaths.add(outputPath);
+                tempFiles.add(outputPath);
             }
 
-            functions.add(input -> FFMPEG.output(CMD.normalizePath(finalOutputPath)));
-
-            String[] command = Pipeline.biLambda(functions, CMD::concat);
-            String[] fullCommand = CMD.concat(
-                    new String[]{CMD.normalizePath(exePath), "-y"},
-                    command
+            String gridPath = outPath + File.separator + "grid_" + UUID.randomUUID() + ".mp4";
+            String[] gridCommand = createGrid(
+                    normalizedPaths.toArray(new String[0]),
+                    gridPath,
+                    targetFPS,
+                    maxRes
             );
-            CMD.run(fullCommand);
+            String[] fullGridCommand = CMD.concat(new String[]{CMD.normalizePath(exePath), "-y"}, gridCommand);
+            if (!CMD.run(fullGridCommand)) {
+                throw new RuntimeException("Failed to create video grid");
+            }
+            tempFiles.add(gridPath);
 
-            Files.deleteIfExists(Paths.get(listPath));
+            String listPath = outPath + File.separator + "list_" + UUID.randomUUID() + ".txt";
+            try (PrintWriter writer = new PrintWriter(listPath)) {
+                for (String file : normalizedPaths) {
+                    writer.println("file '" + file.replace("'", "'\\''") + "'");
+                }
+                writer.println("file '" + gridPath.replace("'", "'\\''") + "'");
+            }
+            tempFiles.add(listPath);
+
+            String finalOutput = outPath + File.separator + outputFileName;
+            String[] concatCommand = CMD.concat(new String[]{CMD.normalizePath(exePath), "-y"},
+                    new String[]{"-f", "concat", "-safe", "0", "-i", listPath, "-c", "copy", finalOutput});
+
+            if (!CMD.run(concatCommand)) {
+                throw new RuntimeException("Failed to concatenate videos");
+            }
         } catch (Exception e) {
             e.printStackTrace();
+            throw new RuntimeException("Video generation failed: " + e.getMessage());
+        } finally {
+            cleanTempFiles(tempFiles);
+        }
+    }
+
+    private static void cleanTempFiles(List<String> tempFiles) {
+        for (String path : tempFiles) {
+            try {
+                Files.deleteIfExists(Paths.get(path));
+            } catch (Exception e) {
+                System.err.println("Failed to delete temp file: " + path);
+                e.printStackTrace();
+            }
         }
     }
 

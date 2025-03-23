@@ -10,22 +10,16 @@ public class CMD {
     public static String normalizePath(String path) {
         return "\"" + path.replace('\\', '/').replace("\"", "") + "\"";
     }
+
     public static String[] concat(String[] a, String[] b) {
         return Stream.concat(Arrays.stream(a), Arrays.stream(b)).toArray(String[]::new);
     }
 
     public static String join(String[] array, String delimiter) {
-        StringBuilder result = new StringBuilder();
-        for (int i = 0; i < array.length; i++) {
-            result.append(array[i]);
-            if (i < array.length - 1) {
-                result.append(delimiter);
-            }
-        }
-        return result.toString();
+        return String.join(delimiter, array);
     }
 
-    public static void run(String[] command) {
+    public static boolean run(String[] command) {
         ProcessBuilder builder = new ProcessBuilder(command);
         builder.redirectErrorStream(true);
 
@@ -48,15 +42,17 @@ public class CMD {
                 process.destroyForcibly();
             }
 
+            return exitCode == 0;
         } catch (IOException | InterruptedException e) {
             e.printStackTrace();
+            return false;
         }
     }
 
     public static String expect(String[] command) {
         final ProcessBuilder builder = new ProcessBuilder();
         try {
-            System.out.println("Executing command: " + CMD.join(command, " "));
+            System.out.println("Executing command: " + String.join(" ", command));
             final Process process = builder.command(command).start();
             BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
             StringBuilder output = new StringBuilder();
@@ -70,7 +66,6 @@ public class CMD {
             process.destroy();
 
             return output.toString().trim();
-
         } catch (IOException | InterruptedException e) {
             throw new RuntimeException(e);
         }

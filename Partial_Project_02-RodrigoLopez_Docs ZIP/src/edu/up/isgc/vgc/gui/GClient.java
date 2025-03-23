@@ -67,7 +67,7 @@ public class GClient extends Application {
 
                 Component.sortComponents();
                 String outputVideoPath = "output." + videoFormatComboBox.getValue();
-                FFMPEG.generateVideo(videoFormatComboBox.getValue(), audioFormatComboBox.getValue(), subtitlesCheckBox.isSelected(), Component.getComponents(), outputVideoPath);
+                FFMPEG.generateVideo(outputVideoPath, Component.getComponents(), subtitlesCheckBox.isSelected());
             }
         });
 
