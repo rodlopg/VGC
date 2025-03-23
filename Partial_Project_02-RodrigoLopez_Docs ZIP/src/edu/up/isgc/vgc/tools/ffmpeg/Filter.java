@@ -1,15 +1,11 @@
 package edu.up.isgc.vgc.tools.ffmpeg;
 
 import edu.up.isgc.vgc.tools.CMD;
-
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Represents a video filter for FFMPEG.
- */
 public class Filter {
-    private static int fAmount = 0; // Tracks the number of filters
+    private static int fAmount = 0;
     private int amount, iFormat, stream, identifier;
     private String filter;
 
@@ -22,7 +18,6 @@ public class Filter {
         this.setFilter(filter);
     }
 
-    // Getters and setters
     public int getAmount() { return amount; }
     public void setAmount(int amount) { this.amount = amount; }
     public int getiFormat() { return iFormat; }
@@ -36,9 +31,6 @@ public class Filter {
     public String getFilter() { return filter; }
     public void setFilter(String filter) { this.filter = filter; }
 
-    /**
-     * Generates a stream identifier for FFMPEG.
-     */
     public static String getStream(int index, int iFormat, int stream) {
         String sIndex = Integer.toString(index);
         String sStream = Integer.toString(stream);
@@ -46,64 +38,49 @@ public class Filter {
         return "[" + CMD.join(preResult, ":") + "]";
     }
 
-    /**
-     * Creates a simple filter command.
-     */
     public static String[] simple(int iFormat, String[] input) {
         return CMD.concat(new String[]{"-" + Format.getFile(iFormat) + "f"}, input);
     }
 
-    /**
-     * Adds a filter to a complex filter chain.
-     */
     public static String addToComplex(int identifier, int index, int iFormat, int stream, String filter) {
         return getStream(index, iFormat, stream) + filter + "[out" + identifier + "]";
     }
 
-    /**
-     * Creates a complex filter command.
-     */
     public static String[] complex(Filter[] filters) {
-        List<String> list = new ArrayList<>();
-        for (Filter f : filters) {
-            for (int j = 0; j < f.getAmount(); j++) {
-                list.add(Filter.addToComplex(f.getIdentifier(), j, f.getiFormat(), f.getStream(), f.getFilter()));
+        List<String> filterChain = new ArrayList<>();
+        for (Filter filter : filters) {
+            StringBuilder chain = new StringBuilder();
+            for (int j = 0; j < filter.getAmount(); j++) {
+                chain.append(addToComplex(
+                        filter.getIdentifier(),
+                        j,
+                        filter.getiFormat(),
+                        filter.getStream(),
+                        filter.getFilter()
+                ));
             }
+            filterChain.add(chain.toString());
         }
-        String[] resultFilter = list.toArray(new String[0]);
-        String finalFilter = Filter.formatFilter(CMD.join(resultFilter, ","));
+        String finalFilter = String.join(";", filterChain);
+        finalFilter = finalFilter.replaceAll(";{2,}", ";");
         return new String[]{"-filter_complex", finalFilter};
     }
 
-    /**
-     * Formats a filter string for FFMPEG.
-     */
     public static String formatFilter(String filter) {
-        String[] filterArray = new String[]{"\"", filter, "\""};
-        return CMD.join(filterArray, "");
+        return filter.replaceAll(";+$", "");
     }
 
-    /**
-     * Generates a scale filter for video resizing.
-     */
     public static String sVideo(String newSize, int forceRatio, int interpolation) {
         String size = "scale=" + newSize;
         String ratio = "force_original_aspect_ratio=" + (forceRatio == 0 ? "decrease" : "increase");
-        String interp = (interpolation == 1 ? "flags=bicubic" : null);
-        String[] parameters = new String[]{size, ratio, interp};
-        return CMD.join(parameters, ":");
+        String interp = interpolation == 1 ? "flags=bicubic" : "";
+        return CMD.join(new String[]{size, ratio, interp}, ":");
     }
 
-    /**
-     * Generates a setpts filter for adjusting timestamps.
-     */
     public static String setPTS() {
         return "setpts=PTS-STARTPTS";
     }
 
-    /**
-     * Generates an fps filter for frame rate adjustment.
-     */
     public static String fps(int fps) {
         return "fps=" + fps;
     }
