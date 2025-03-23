@@ -23,25 +23,31 @@ public class CMD{
     }
 
     public static void run(String[] command) {
-        final ProcessBuilder builder = new ProcessBuilder();
+        ProcessBuilder builder = new ProcessBuilder(command);
+        builder.redirectErrorStream(true); // Merge stdout/stderr
+
         try {
             System.out.println("Executing: " + String.join(" ", command));
-            Process process = builder.command(command).start();
+            Process process = builder.start();
 
-            // Read stdout and stderr
-            BufferedReader stdoutReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-            BufferedReader stderrReader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
-
-            // Print output
-            String line;
-            while ((line = stdoutReader.readLine()) != null) {
-                System.out.println("FFmpeg: " + line);
-            }
-            while ((line = stderrReader.readLine()) != null) {
-                System.err.println("FFmpeg Error: " + line);
+            // Read ALL output lines
+            try (BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(process.getInputStream()))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    System.out.println("FFmpeg: " + line); // Print progress
+                }
             }
 
-            process.waitFor();
+            // Wait for process to finish
+            int exitCode = process.waitFor();
+            System.out.println("Process exited with code: " + exitCode);
+
+            // Force-terminate if still running
+            if (process.isAlive()) {
+                process.destroyForcibly();
+            }
+
         } catch (IOException | InterruptedException e) {
             e.printStackTrace();
         }
@@ -59,7 +65,8 @@ public class CMD{
             while ((line = reader.readLine()) != null) {
                 output.append(line).append("\n");
             }
-            System.out.println("Waiting... " + process.waitFor());
+            int exitCode = process.waitFor();
+            System.out.println("Process exited with code: " + exitCode);
             process.destroy();
 
             return output.toString().trim();
@@ -74,18 +81,13 @@ public class CMD{
     }
 
     public static String trimUntil(String output, String trim) {
-        // Handle null inputs
         if (output == null || trim == null) {
             throw new IllegalArgumentException("Input strings cannot be null.");
         }
 
-        // Find the index of the trim string
         int index = output.indexOf(trim);
-
-        // If trim is not found, return the entire output string (trimmed)
         if (index == -1) { return output.trim(); }
 
-        // Return the substring from the start up to the trim string (trimmed)
         return output.substring(0, index).trim();
     }
 

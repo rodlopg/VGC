@@ -131,7 +131,7 @@ public class FFMPEG {
             );
 
             String[] command = Pipeline.biLambda(functions, CMD::concat);
-            String[] fullCommand = CMD.concat(new String[]{quotePath(exePath)}, command);
+            String[] fullCommand = CMD.concat(new String[]{quotePath(exePath), "-y"}, command);
             CMD.run(fullCommand);
             normalizedFiles.add(normalizedOutputPath);
         }
@@ -176,7 +176,7 @@ public class FFMPEG {
                     String imageVideoPath = outPath + "/image_" + component.getPath().hashCode() + ".mp4";
                     String[] loopCommand = loopImg(5, Format.getCodec(0, 0), component.getPath());
 
-                    String[] fullLoopCommand = CMD.concat(new String[]{quotePath(exePath)}, loopCommand);
+                    String[] fullLoopCommand = CMD.concat(new String[]{quotePath(exePath), "-y"}, loopCommand);
                     CMD.run(fullLoopCommand);
 
                     Video videoComponent = new Video(component.getWidth(), component.getHeight(),
@@ -197,7 +197,7 @@ public class FFMPEG {
 
             String gridOutputPath = outPath + "/grid.mp4";
             String[] gridCommand = createGrid(videoComponents, gridOutputPath);
-            String[] fullGridCommand = CMD.concat(new String[]{quotePath(exePath)}, gridCommand);
+            String[] fullGridCommand = CMD.concat(new String[]{quotePath(exePath), "-y"}, gridCommand);
             CMD.run(fullGridCommand);
 
             String finalOutputPath = outPath + "/" + outputPath;
@@ -214,7 +214,7 @@ public class FFMPEG {
             }
 
             String[] command = Pipeline.biLambda(functions, CMD::concat);
-            String[] fullCommand = CMD.concat(new String[]{quotePath(exePath)}, command);
+            String[] fullCommand = CMD.concat(new String[]{quotePath(exePath), "-y"}, command);
             CMD.run(fullCommand);
         } catch (Exception e) {
             e.printStackTrace();
