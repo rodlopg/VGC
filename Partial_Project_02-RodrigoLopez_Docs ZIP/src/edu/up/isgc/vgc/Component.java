@@ -3,8 +3,8 @@ package edu.up.isgc.vgc;
 import java.util.ArrayList;
 import java.util.Collections;
 
-public abstract class Component implements Comparable<Component>{
-    private static int[] maxResolution = new int[]{0,0};
+public abstract class Component implements Comparable<Component> {
+    private static int[] maxResolution = new int[]{0, 0};
     private int width;
     private int height;
     private Double duration;
@@ -13,17 +13,17 @@ public abstract class Component implements Comparable<Component>{
     private static ArrayList<Component> components = new ArrayList<Component>();
 
     public Component(int width, int height, String date, Double duration, String type, String path) {
-        this.setWidth(width);
-        this.setHeight(height);
-        this.setDate(date);
-        this.setDuration(duration);
-        this.setType(type);
-        this.setPath(path);
-        Component.addComponent(this);
+        setWidth(width);
+        setHeight(height);
+        setDate(date);
+        setDuration(duration);
+        setType(type);
+        setPath(path);
+        addComponent(this);
     }
 
     public static int[] getMaxResolution() {
-        return Component.maxResolution;
+        return maxResolution;
     }
 
     public static void setMaxResolution(int[] maxResolution) {
@@ -32,87 +32,49 @@ public abstract class Component implements Comparable<Component>{
 
     public abstract void printAttributes();
 
-    public int getWidth() {
-        return width;
-    }
+    public int getWidth() { return width; }
+    public void setWidth(int width) { this.width = width; }
 
-    public void setWidth(int width) {
-        this.width = width;
-    }
+    public int getHeight() { return height; }
+    public void setHeight(int height) { this.height = height; }
 
-    public int getHeight() {
-        return height;
-    }
+    public String getDate() { return date; }
+    public void setDate(String date) { this.date = date; }
 
-    public void setHeight(int height) {
-        this.height = height;
-    }
+    public String getType() { return type; }
+    public void setType(String type) { this.type = type; }
 
-    public String getDate() {
-        return date;
-    }
+    public String getPath() { return path; }
+    public void setPath(String path) { this.path = path; }
 
-    public void setDate(String date) {
-        this.date = date;
-    }
+    public Double getDuration() { return duration; }
+    public void setDuration(Double duration) { this.duration = duration; }
 
-    public String getType() {
-        return type;
-    }
+    public static int getCompAmount() { return compAmount; }
+    public static void setCompAmount(int compAmount) { Component.compAmount = compAmount; }
 
-    public void setType(String type) {
-        this.type = type;
-    }
-
-    public String getPath() {
-        return path;
-    }
-
-    public void setPath(String path) {
-        this.path = path;
-    }
-
-    public Double getDuration() {
-        return duration;
-    }
-
-    public void setDuration(Double duration) {
-        this.duration = duration;
-    }
-
-    public static int getCompAmount() {
-        return Component.compAmount;
-    }
-
-    public static void setCompAmount(int compAmount) {
-        Component.compAmount = compAmount;
-    }
-
-    public static ArrayList<Component> getComponents() {
-        return components;
-    }
-
-    public static void setComponents(ArrayList<Component> components) {
-        Component.components = components;
-    }
+    public static ArrayList<Component> getComponents() { return components; }
+    public static void setComponents(ArrayList<Component> components) { Component.components = components; }
 
     public abstract String returnIFormat();
 
     private static void addComponent(Component component) {
         components.add(component);
-        Component.setCompAmount(Component.getComponents().size());
-        if(component.getWidth() > maxResolution[0] && component.getHeight() > maxResolution[1]) {
-            Component.setMaxResolution(new int[]{component.getWidth(), component.getHeight()});
+        setCompAmount(components.size());
+        if (component.getWidth() > maxResolution[0] || component.getHeight() > maxResolution[1]) {
+            setMaxResolution(new int[]{
+                    Math.max(component.getWidth(), maxResolution[0]),
+                    Math.max(component.getHeight(), maxResolution[1])
+            });
         }
     }
 
     @Override
     public int compareTo(Component other) {
-        return CharSequence.compare(this.getDate(), other.getDate());
+        return this.getDate().compareTo(other.getDate());
     }
 
-    // This will automatically sort your components by sortKey
     public static void sortComponents() {
-        Collections.sort(Component.getComponents());
+        Collections.sort(components);
     }
 }

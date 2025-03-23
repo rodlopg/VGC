@@ -16,13 +16,8 @@ public class FFMPEG {
     private static String exePath = new File("Tools/FFMPEG/ffmpeg.exe").getAbsolutePath();
     private static String outPath = new File("Outputs").getAbsolutePath();
 
-    public static void setExePath(String newPath) {
-        FFMPEG.exePath = newPath;
-    }
-
-    public static void setOutputPath(String newPath) {
-        FFMPEG.outPath = newPath;
-    }
+    public static void setExePath(String newPath) { exePath = newPath; }
+    public static void setOutputPath(String newPath) { outPath = newPath; }
 
     public static String[] input(String filePath) {
         return new String[]{"-i", CMD.normalizePath(filePath)};
@@ -60,8 +55,8 @@ public class FFMPEG {
         List<Function<String[], String[]>> functions = new ArrayList<>();
         functions.add(input -> new String[]{"-c:" + Format.getFile(iFormat), Format.getCodec(iFormat, cFormat)});
         if (iFormat == 0) {
-            functions.add(input -> FFMPEG.crf(crf));
-            functions.add(input -> FFMPEG.preset(preset));
+            functions.add(input -> crf(crf));
+            functions.add(input -> preset(preset));
         }
         return Pipeline.biLambda(functions, CMD::concat);
     }
@@ -75,18 +70,24 @@ public class FFMPEG {
     }
 
     public static String[] pixelFormat() {
-        return FFMPEG.pixelFormat(0);
+        return pixelFormat(0);
     }
 
     public static String[] loopImg(int duration, String filePath, String outputPath) {
         String sDuration = Integer.toString(duration);
         List<Function<String[], String[]>> functions = List.of(
                 input -> new String[]{"-loop", "1"},
-                input -> FFMPEG.input(filePath),
+                input -> input(filePath),
+                input -> new String[]{"-f", "lavfi"},
+                input -> new String[]{"-i", "aevalsrc=0:d=" + sDuration},  // Removed [silence] label
                 input -> new String[]{"-t", sDuration},
-                input -> FFMPEG.lxcEncode(0, 0),
-                input -> FFMPEG.pixelFormat(),
-                input -> FFMPEG.output(outputPath)
+                input -> new String[]{"-map", "0:v"},
+                input -> new String[]{"-map", "1:a"},  // Changed to direct audio stream reference
+                input -> new String[]{"-shortest"},
+                input -> lxcEncode(0, 0),
+                input -> new String[]{"-c:a", "aac"},
+                input -> pixelFormat(),
+                input -> output(outputPath)
         );
         return Pipeline.biLambda(functions, CMD::concat);
     }
@@ -94,7 +95,7 @@ public class FFMPEG {
     public static String[] inputMany(String[] inputFiles) {
         String[] inputCommand = new String[0];
         for (String file : inputFiles) {
-            inputCommand = CMD.concat(inputCommand, FFMPEG.input(file));
+            inputCommand = CMD.concat(inputCommand, input(file));
         }
         return inputCommand;
     }
@@ -107,11 +108,12 @@ public class FFMPEG {
         };
 
         List<Function<String[], String[]>> functions = List.of(
-                input -> FFMPEG.input(inputFile),
+                input -> input(inputFile),
                 input -> new String[]{"-vf", CMD.join(filter, ",")},
-                input -> FFMPEG.cPRate(targetFPS),
-                input -> FFMPEG.lxcEncode(0, 0),
-                input -> FFMPEG.output(outputFile)
+                input -> cPRate(targetFPS),
+                input -> lxcEncode(0, 0),
+                input -> new String[]{"-c:a", "aac"},
+                input -> output(outputFile)
         );
 
         return Pipeline.biLambda(functions, CMD::concat);
@@ -148,12 +150,12 @@ public class FFMPEG {
                 .append(",fps=").append(targetFPS).append("[vout]");
 
         List<Function<String[], String[]>> functions = List.of(
-                input -> FFMPEG.inputMany(inputFiles),
+                input -> inputMany(inputFiles),
                 input -> new String[]{"-filter_complex", filterComplex.toString()},
                 input -> new String[]{"-map", "[vout]"},
                 input -> new String[]{"-r", Integer.toString(targetFPS)},
-                input -> FFMPEG.lxcEncode(0, 0, 18, 0),
-                input -> FFMPEG.output(CMD.normalizePath(outputPath))
+                input -> lxcEncode(0, 0, 18, 0),
+                input -> output(CMD.normalizePath(outputPath))
         );
 
         return Pipeline.biLambda(functions, CMD::concat);
@@ -164,7 +166,6 @@ public class FFMPEG {
         try {
             int targetFPS = 30;
             int[] maxRes = Component.getMaxResolution();
-            // Cap maximum resolution to prevent memory issues
             maxRes[0] = Math.min(maxRes[0], 1920);
             maxRes[1] = Math.min(maxRes[1], 1080);
 
@@ -187,12 +188,7 @@ public class FFMPEG {
             List<String> normalizedPaths = new ArrayList<>();
             for (String videoPath : videoPaths) {
                 String outputPath = outPath + File.separator + "normalized_" + UUID.randomUUID() + ".mp4";
-                String[] normCommand = normalize(
-                        videoPath,
-                        outputPath,
-                        targetFPS,
-                        maxRes[0] + ":" + maxRes[1]
-                );
+                String[] normCommand = normalize(videoPath, outputPath, targetFPS, maxRes[0] + ":" + maxRes[1]);
                 String[] fullCommand = CMD.concat(new String[]{CMD.normalizePath(exePath), "-y"}, normCommand);
                 if (!CMD.run(fullCommand)) {
                     throw new RuntimeException("Failed to normalize video: " + videoPath);
@@ -202,12 +198,7 @@ public class FFMPEG {
             }
 
             String gridPath = outPath + File.separator + "grid_" + UUID.randomUUID() + ".mp4";
-            String[] gridCommand = createGrid(
-                    normalizedPaths.toArray(new String[0]),
-                    gridPath,
-                    targetFPS,
-                    maxRes
-            );
+            String[] gridCommand = createGrid(normalizedPaths.toArray(new String[0]), gridPath, targetFPS, maxRes);
             String[] fullGridCommand = CMD.concat(new String[]{CMD.normalizePath(exePath), "-y"}, gridCommand);
             if (!CMD.run(fullGridCommand)) {
                 throw new RuntimeException("Failed to create video grid");
@@ -249,15 +240,7 @@ public class FFMPEG {
         }
     }
 
-    public static String getExePath() {
-        return exePath;
-    }
-
-    public static String getOutPath() {
-        return outPath;
-    }
-
-    public static void setOutPath(String outPath) {
-        FFMPEG.outPath = outPath;
-    }
+    public static String getExePath() { return exePath; }
+    public static String getOutPath() { return outPath; }
+    public static void setOutPath(String outPath) { FFMPEG.outPath = outPath; }
 }
