@@ -57,7 +57,7 @@ public class Filter {
      * Adds a filter to a complex filter chain.
      */
     public static String addToComplex(int identifier, int index, int iFormat, int stream, String filter) {
-        return getStream(index, iFormat, stream) + filter + "[" + Format.getFile(iFormat) + identifier + index + "]";
+        return getStream(index, iFormat, stream) + filter + "[out" + identifier + "]";
     }
 
     /**
@@ -72,7 +72,6 @@ public class Filter {
         }
         String[] resultFilter = list.toArray(new String[0]);
         String finalFilter = Filter.formatFilter(CMD.join(resultFilter, ","));
-        System.out.println(finalFilter);
         return new String[]{"-filter_complex", finalFilter};
     }
 

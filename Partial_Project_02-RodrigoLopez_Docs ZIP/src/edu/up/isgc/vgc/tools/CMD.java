@@ -22,17 +22,28 @@ public class CMD{
         return result.toString();
     }
 
-    public static void run(String[] command){
+    public static void run(String[] command) {
         final ProcessBuilder builder = new ProcessBuilder();
-        try{
-            System.out.println("Executing command: " + CMD.join(command, " "));
-            final Process process = builder.command(command).start();
-            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-            System.out.println("Waiting... " + process.waitFor());
-            process.destroy();
+        try {
+            System.out.println("Executing: " + String.join(" ", command));
+            Process process = builder.command(command).start();
 
-        }catch(IOException | InterruptedException e){
-            throw new RuntimeException(e);
+            // Read stdout and stderr
+            BufferedReader stdoutReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            BufferedReader stderrReader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
+
+            // Print output
+            String line;
+            while ((line = stdoutReader.readLine()) != null) {
+                System.out.println("FFmpeg: " + line);
+            }
+            while ((line = stderrReader.readLine()) != null) {
+                System.err.println("FFmpeg Error: " + line);
+            }
+
+            process.waitFor();
+        } catch (IOException | InterruptedException e) {
+            e.printStackTrace();
         }
     }
 
