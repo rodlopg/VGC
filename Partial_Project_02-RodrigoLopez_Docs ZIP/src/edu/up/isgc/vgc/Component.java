@@ -13,13 +13,13 @@ public abstract class Component implements Comparable<Component> {
     private static ArrayList<Component> components = new ArrayList<Component>();
 
     public Component(int width, int height, String date, Double duration, String type, String path) {
-        setWidth(width);
-        setHeight(height);
-        setDate(date);
-        setDuration(duration);
-        setType(type);
-        setPath(path);
-        addComponent(this);
+        this.setWidth(width);
+        this.setHeight(height);
+        this.setDate(date);
+        this.setDuration(duration);
+        this.setType(type);
+        this.setPath(path);
+        Component.addComponent(this);
     }
 
     public static int[] getMaxResolution() {
@@ -61,7 +61,7 @@ public abstract class Component implements Comparable<Component> {
     private static void addComponent(Component component) {
         components.add(component);
         setCompAmount(components.size());
-        if (component.getWidth() > maxResolution[0] || component.getHeight() > maxResolution[1]) {
+        if (component.getWidth() > maxResolution[0]) {
             setMaxResolution(new int[]{
                     Math.max(component.getWidth(), maxResolution[0]),
                     Math.max(component.getHeight(), maxResolution[1])

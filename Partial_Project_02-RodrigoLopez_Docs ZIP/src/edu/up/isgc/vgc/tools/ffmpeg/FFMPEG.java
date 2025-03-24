@@ -78,12 +78,14 @@ public class FFMPEG {
         List<Function<String[], String[]>> functions = List.of(
                 input -> new String[]{"-loop", "1"},
                 input -> input(filePath),
-                input -> new String[]{"-f", "lavfi"},
-                input -> new String[]{"-i", "aevalsrc=0:d=" + sDuration},
                 input -> new String[]{"-t", sDuration},
+                input -> new String[]{"-f", "lavfi", "-i", "aevalsrc=0:d=" + sDuration}, // Moved this before -vf
+                input -> new String[]{"-vf", "scale=1920:-1:flags=lanczos"},
                 input -> new String[]{"-map", "0:v"},
                 input -> new String[]{"-map", "1:a"},
                 input -> new String[]{"-shortest"},
+                input -> new String[]{"-max_muxing_queue_size", "1024"}, // Increase memory buffer
+                input -> new String[]{"-thread_queue_size", "1024"},    // Increase thread buffer
                 input -> lxcEncode(0, 0),
                 input -> new String[]{"-c:a", "aac"},
                 input -> pixelFormat(),
@@ -91,6 +93,7 @@ public class FFMPEG {
         );
         return Pipeline.biLambda(functions, CMD::concat);
     }
+
 
     public static String[] inputMany(String[] inputFiles) {
         String[] inputCommand = new String[0];
@@ -106,8 +109,9 @@ public class FFMPEG {
         int targetHeight = Integer.parseInt(sizeParts[1]);
 
         String[] filter = new String[]{
+                // Corrected scaling with aspect ratio preservation
                 "scale=" + targetWidth + ":" + targetHeight + ":force_original_aspect_ratio=decrease:flags=bicubic:force_divisible_by=2",
-                "pad=" + targetWidth + ":" + targetHeight + ":(ow-iw)/2:(oh-ih)/2",
+                "pad=" + targetWidth + ":" + targetHeight + ":(ow-iw)/2:(oh-ih)/2:color=black",
                 Filter.setPTS(),
                 Filter.fps(targetFPS)
         };
@@ -123,6 +127,7 @@ public class FFMPEG {
 
         return Pipeline.biLambda(functions, CMD::concat);
     }
+
 
     public static String[] createGrid(String[] inputFiles, String outputPath, int targetFPS, int[] maxRes) {
         StringBuilder filterComplex = new StringBuilder();
