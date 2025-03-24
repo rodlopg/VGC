@@ -79,8 +79,8 @@ public class FFMPEG {
                 input -> new String[]{"-loop", "1"},
                 input -> input(filePath),
                 input -> new String[]{"-t", sDuration},
-                input -> new String[]{"-f", "lavfi", "-i", "aevalsrc=0:d=" + sDuration}, // Moved this before -vf
-                input -> new String[]{"-vf", "scale=1920:-1:flags=lanczos"},
+                input -> new String[]{"-f", "lavfi", "-i", "aevalsrc=0:d=" + sDuration},
+                input -> new String[]{"-vf", "scale="+ Component.getMaxResolution()[0] +":-1:flags=lanczos"},
                 input -> new String[]{"-map", "0:v"},
                 input -> new String[]{"-map", "1:a"},
                 input -> new String[]{"-shortest"},
@@ -110,7 +110,7 @@ public class FFMPEG {
 
         String[] filter = new String[]{
                 // Corrected scaling with aspect ratio preservation
-                "scale=" + targetWidth + ":" + targetHeight + ":force_original_aspect_ratio=decrease:flags=bicubic:force_divisible_by=2",
+                "scale=" + Component.getMaxResolution()[0] + ":-1:force_original_aspect_ratio=decrease,crop=" + Component.getMaxResolution()[0] + ":" + Component.getMaxResolution()[1],
                 "pad=" + targetWidth + ":" + targetHeight + ":(ow-iw)/2:(oh-ih)/2:color=black",
                 Filter.setPTS(),
                 Filter.fps(targetFPS)
