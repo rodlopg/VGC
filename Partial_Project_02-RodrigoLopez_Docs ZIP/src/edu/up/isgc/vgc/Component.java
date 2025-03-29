@@ -1,5 +1,8 @@
 package edu.up.isgc.vgc;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
 
@@ -76,5 +79,15 @@ public abstract class Component implements Comparable<Component> {
 
     public static void sortComponents() {
         Collections.sort(components);
+    }
+
+    public static String generateNow(){
+        LocalDateTime now = LocalDateTime.now();
+
+        // EXIF format pattern: "yyyy:MM:dd HH:mm:ss"
+        DateTimeFormatter exifFormatter = DateTimeFormatter.ofPattern("yyyy:MM:dd HH:mm:ss");
+
+        // Format the date
+        return now.format(exifFormatter);
     }
 }
