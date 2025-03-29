@@ -64,6 +64,7 @@ public class OpenAI {
             String base64Image01 = json.getJSONArray("data")
                     .getJSONObject(0)
                     .getString("b64_json");  // Changed from "url"
+
             String base64Image02 = json.getJSONArray("data")
                     .getJSONObject(1)
                     .getString("b64_json");  // Changed from "url"
@@ -109,56 +110,82 @@ public class OpenAI {
         }
     }
 
-    private static void downloadImage(String imageUrl, String outputPath) {
+    public static String describeImage(String imageUrl) {
         try {
-            // Create HTTP client with modern settings
-            HttpClient client = HttpClient.newBuilder()
-                    .followRedirects(HttpClient.Redirect.ALWAYS) // Handle redirects
-                    .connectTimeout(Duration.ofSeconds(10)) // Timeout settings
-                    .build();
+            URL url = new URL(IMG_TXT_URL);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("POST");
+            conn.setRequestProperty("Content-Type", "application/json");
+            conn.setRequestProperty("Authorization", "Bearer " + API_KEY);
+            conn.setDoOutput(true);
 
-            // Create request with proper headers
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(imageUrl))
-                    .header("User-Agent", "Mozilla/5.0") // Some servers require this
-                    .timeout(Duration.ofSeconds(15))
-                    .GET()
-                    .build();
+            JSONObject message = new JSONObject()
+                    .put("role", "user")
+                    .put("content", new JSONArray()
+                            .put(new JSONObject().put("type", "text").put("text", "Describe this image in detail"))
+                            .put(new JSONObject().put("type", "image_url")
+                                    .put("image_url", new JSONObject().put("url", imageUrl)))
+                    );
 
-            // Send request and handle response
-            HttpResponse<InputStream> response = client.send(
-                    request,
-                    HttpResponse.BodyHandlers.ofInputStream()
-            );
+            JSONObject payload = new JSONObject()
+                    .put("model", "gpt-4o")
+                    .put("messages", new JSONArray().put(message))
+                    .put("max_tokens", 300);
 
-            // Check HTTP status
-            if (response.statusCode() != 200) {
-                throw new IOException("HTTP error: " + response.statusCode());
+            try (OutputStream os = conn.getOutputStream()) {
+                byte[] input = payload.toString().getBytes(StandardCharsets.UTF_8);
+                os.write(input, 0, input.length);
             }
 
-            // Create output directory if needed
-            Path outputDir = Paths.get(GEN_IMG_DIR);
-            if (!Files.exists(outputDir)) {
-                Files.createDirectories(outputDir);
+            if (conn.getResponseCode() != 200) {
+                System.err.println("API Error: " + conn.getResponseMessage());
+                return null;
             }
 
-            // Read and save image
-            try (InputStream inputStream = response.body()) {
-                BufferedImage image = ImageIO.read(inputStream);
-                if (image == null) {
-                    throw new IOException("Failed to decode image from stream");
+            try (BufferedReader br = new BufferedReader(
+                    new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8))) {
+                StringBuilder response = new StringBuilder();
+                String responseLine;
+                while ((responseLine = br.readLine()) != null) {
+                    response.append(responseLine.trim());
                 }
-
-                Path outputPathObj = Paths.get(outputPath);
-                if (!ImageIO.write(image, "png", outputPathObj.toFile())) {
-                    throw new IOException("No PNG writer available");
-                }
+                return new JSONObject(response.toString())
+                        .getJSONArray("choices")
+                        .getJSONObject(0)
+                        .getJSONObject("message")
+                        .getString("content");
             }
-        } catch (IOException | InterruptedException e) {
-            System.err.println("Image download failed: " + e.getMessage());
-            if (e instanceof InterruptedException) {
-                Thread.currentThread().interrupt(); // Preserve interrupt status
-            }
+        } catch (Exception e) {
+            System.err.println("Image description failed: " + e.getMessage());
+            return null;
         }
     }
+
+    public static String generateAudio(String text, String outputName) {
+        try {
+            JSONObject payload = new JSONObject()
+                    .put("model", "tts-1")
+                    .put("input", text)
+                    .put("voice", "alloy")
+                    .put("response_format", "mp3");
+
+            List<Function<String[], String[]>> pipeline = List.of(
+                    input -> new String[]{"curl", TXT_AUDIO_URL},
+                    input -> new String[]{"-X", "POST"},
+                    input -> new String[]{"-H", "Content-Type: application/json"},
+                    input -> new String[]{"-H", "Authorization: Bearer " + API_KEY},
+                    input -> new String[]{"-d", payload.toString()},
+                    input -> new String[]{"-o", GEN_IMG_DIR + outputName + ".mp3"}
+            );
+
+            String[] command = Pipeline.biLambda(pipeline, CMD::concat);
+
+            CMD.expect(command);
+            return GEN_IMG_DIR + outputName + ".mp3";
+        } catch (Exception e) {
+            System.err.println("Audio generation failed: " + e.getMessage());
+            return null;
+        }
+    }
+
 }
