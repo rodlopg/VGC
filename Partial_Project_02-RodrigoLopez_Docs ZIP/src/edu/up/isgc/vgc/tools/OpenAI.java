@@ -28,6 +28,11 @@ public class OpenAI {
 
     public static String[] generatePostcards(String prompt, int count) {
         try {
+            // Validate input
+            if (prompt == null || prompt.trim().isEmpty()) {
+                throw new IllegalArgumentException("Prompt cannot be empty");
+            }
+
             JSONObject payload = new JSONObject()
                     .put("model", "dall-e-2")
                     .put("prompt", "Generate a postcard image of: " + prompt)
@@ -35,26 +40,66 @@ public class OpenAI {
                     .put("size", "1024x1024")
                     .put("response_format", "b64_json");
 
-            List<Function<String[], String[]>> pipeline = List.of(
-                    input -> new String[]{"curl", IMG_GEN_URL},
-                    input -> new String[]{"-X", "POST"},
-                    input -> new String[]{"-H", "Content-Type: application/json"},
-                    input -> new String[]{"-H", "Authorization: Bearer " + API_KEY},
-                    input -> new String[]{"-d", payload.toString()}
-            );
+            // Properly escape the JSON payload for command line
+            String jsonPayload = payload.toString()
+                    .replace("\"", "\\\"")  // Escape double quotes
+                    .replace("$", "\\$");    // Escape dollar signs
 
-            String[] command = Pipeline.biLambda(pipeline, CMD::concat);
+            // Build curl command with proper escaping
+            String[] command = {
+                    "curl",
+                    IMG_GEN_URL,
+                    "-X", "POST",
+                    "-H", "Content-Type: application/json",
+                    "-H", "Authorization: Bearer " + API_KEY.trim(),  // Ensure no whitespace
+                    "-d", "\"" + jsonPayload + "\"",  // Wrap payload in quotes
+                    "--fail",  // Fail on HTTP errors
+                    "--silent",
+                    "--show-error"
+            };
+
+            // Debug: Print the exact command being executed
+            System.out.println("Executing command: " + String.join(" ", command));
+
+            // Execute command
             String response = CMD.expect(command);
+
+            if (response == null || response.trim().isEmpty()) {
+                throw new IOException("Empty response from API. Possible causes:\n" +
+                        "1. Invalid API key\n" +
+                        "2. Network issues\n" +
+                        "3. API service outage\n" +
+                        "4. Incorrect payload formatting");
+            }
+
+            // Debug: Print the raw response
+            System.out.println("Raw API response: " + response);
             return handleMultipleImages(response, "postcard");
+
         } catch (Exception e) {
             System.err.println("Postcard generation failed: " + e.getMessage());
+            e.printStackTrace();
             return new String[0];
         }
     }
 
     private static String[] handleMultipleImages(String response, String baseName) {
         try {
+            // Trim and validate response
+            response = response.trim();
+            if (response.isEmpty()) {
+                throw new IOException("Empty response data");
+            }
+
+            // Parse JSON
             JSONObject json = new JSONObject(response);
+
+            // Check for errors
+            if (json.has("error")) {
+                throw new IOException("API Error: " + json.getJSONObject("error").getString("message"));
+            }
+
+            // Process images
             JSONArray data = json.getJSONArray("data");
             String[] imagePaths = new String[data.length()];
 
@@ -75,6 +120,7 @@ public class OpenAI {
                 imagePaths[i] = fullPath;
             }
             return imagePaths;
+
         } catch (Exception e) {
             System.err.println("Image processing failed: " + e.getMessage());
             return new String[0];
