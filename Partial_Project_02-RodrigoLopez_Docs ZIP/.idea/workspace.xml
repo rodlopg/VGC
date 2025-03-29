@@ -6,9 +6,7 @@
   <component name="ChangeListManager">
     <list default="true" id="24d676c5-1f77-469d-8774-9ffd7f40ef0c" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/edu/up/isgc/vgc/Component.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/edu/up/isgc/vgc/Component.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/edu/up/isgc/vgc/graphic/AIImage.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/edu/up/isgc/vgc/graphic/AIImage.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/edu/up/isgc/vgc/gui/GClient.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/edu/up/isgc/vgc/gui/GClient.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/edu/up/isgc/vgc/tools/ffmpeg/FFMPEG.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/edu/up/isgc/vgc/tools/ffmpeg/FFMPEG.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -82,7 +80,7 @@
       <option name="presentableId" value="Default" />
       <updated>1743214711462</updated>
       <workItem from="1743214712834" duration="552000" />
-      <workItem from="1743215678757" duration="6187000" />
+      <workItem from="1743215678757" duration="6745000" />
     </task>
     <servers />
   </component>

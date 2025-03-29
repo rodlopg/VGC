@@ -182,22 +182,23 @@ public class FFMPEG {
             List<String> videoPaths = new ArrayList<>();
             List<String> audioPaths = new ArrayList<>();
             String finalPostcardPath = null;
+            Component[] postCardComponents = Component.getPostCards();
+
+            if(postCardComponents[0] != null) {
+                String outputPath = outPath + File.separator + "postcard_" + UUID.randomUUID() + ".mp4";
+                String[] loopCommand = loopImg(5, postCardComponents[0].getPath(), outputPath);
+                String[] fullCommand = CMD.concat(new String[]{CMD.normalizePath(exePath), "-y"}, loopCommand);
+                if (!CMD.run(fullCommand)) {
+                    throw new RuntimeException("Failed to create postcard video: " + postCardComponents[0].getPath());
+                }
+                videoPaths.add(outputPath);
+                tempFiles.add(outputPath);
+
+                finalPostcardPath = outputPath;
+            }
 
             for (Component component : components) {
-                if (component.returnIFormat().equals("AIImage")) {
-                    String outputPath = outPath + File.separator + "postcard_" + UUID.randomUUID() + ".mp4";
-                    String[] loopCommand = loopImg(5, component.getPath(), outputPath);
-                    String[] fullCommand = CMD.concat(new String[]{CMD.normalizePath(exePath), "-y"}, loopCommand);
-                    if (!CMD.run(fullCommand)) {
-                        throw new RuntimeException("Failed to create postcard video: " + component.getPath());
-                    }
-                    videoPaths.add(outputPath);
-                    tempFiles.add(outputPath);
-
-                    if (finalPostcardPath == null) {
-                        finalPostcardPath = outputPath;
-                    }
-                } else if (component.returnIFormat().equals("AIAudio")) {
+                if (component.returnIFormat().equals("AIAudio")) {
                     audioPaths.add(component.getPath());
                 } else if (component.returnIFormat().equals("Image")) {
                     String outputPath = outPath + File.separator + "image_" + UUID.randomUUID() + ".mp4";
@@ -211,6 +212,19 @@ public class FFMPEG {
                 } else if (component.returnIFormat().equals("Video")) {
                     videoPaths.add(component.getPath());
                 }
+            }
+
+            if(postCardComponents[1] != null) {
+                String outputPath = outPath + File.separator + "postcard_" + UUID.randomUUID() + ".mp4";
+                String[] loopCommand = loopImg(5, postCardComponents[1].getPath(), outputPath);
+                String[] fullCommand = CMD.concat(new String[]{CMD.normalizePath(exePath), "-y"}, loopCommand);
+                if (!CMD.run(fullCommand)) {
+                    throw new RuntimeException("Failed to create postcard video: " + postCardComponents[1].getPath());
+                }
+                videoPaths.add(outputPath);
+                tempFiles.add(outputPath);
+
+                finalPostcardPath = outputPath;
             }
 
             List<String> normalizedPaths = new ArrayList<>();
