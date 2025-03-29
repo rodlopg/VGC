@@ -17,7 +17,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 public class OpenAI {
-    private static final String API_KEY = "API KEY HERE";
+    private static final String API_KEY = System.getenv("API_KEY_HERE");
     public static final String OPENAI_URL = "https://api.openai.com/v1";
     private static final String IMG_GEN_URL = OPENAI_URL + "/images/generations";
     private static final String IMG_TXT_URL = OPENAI_URL + "/chat/completions";

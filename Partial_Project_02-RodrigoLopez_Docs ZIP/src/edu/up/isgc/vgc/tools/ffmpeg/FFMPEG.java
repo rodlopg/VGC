@@ -2,15 +2,14 @@ package edu.up.isgc.vgc.tools.ffmpeg;
 
 import edu.up.isgc.vgc.Component;
 import edu.up.isgc.vgc.tools.CMD;
+import edu.up.isgc.vgc.tools.OpenAI;
 import edu.up.isgc.vgc.tools.Pipeline;
 import java.io.File;
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.function.Function;
 
 public class FFMPEG {
@@ -128,6 +127,9 @@ public class FFMPEG {
     }
 
     public static String[] createGrid(String[] inputFiles, String outputPath, int targetFPS, int[] maxRes) {
+        if (inputFiles == null || inputFiles.length == 0) {
+            throw new IllegalArgumentException("No input files for grid creation");
+        }
         StringBuilder filterComplex = new StringBuilder();
         int numInputs = inputFiles.length;
 
@@ -171,7 +173,17 @@ public class FFMPEG {
         return Pipeline.biLambda(functions, CMD::concat);
     }
 
-    public static void generateVideo(String outputFileName, ArrayList<Component> components, boolean addSubtitles) {
+    private static String imageToBase64(String imagePath) {
+        try {
+            byte[] imageBytes = Files.readAllBytes(Paths.get(imagePath));
+            return "data:image/png;base64," + Base64.getEncoder().encodeToString(imageBytes);
+        } catch (IOException e) {
+            System.err.println("Failed to convert image to Base64: " + e.getMessage());
+            return null;
+        }
+    }
+
+    public static void generateVideo(String outputFileName, List<Component> components, boolean addSubtitles) {
         List<String> tempFiles = new ArrayList<>();
         try {
             int targetFPS = 30;
@@ -181,73 +193,106 @@ public class FFMPEG {
 
             List<String> videoPaths = new ArrayList<>();
             List<String> audioPaths = new ArrayList<>();
-            String finalPostcardPath = null;
             Component[] postCardComponents = Component.getPostCards();
 
+            // Process first postcard
+            String firstPostcardPath = null;
             if(postCardComponents[0] != null) {
-                String outputPath = outPath + File.separator + "postcard_" + UUID.randomUUID() + ".mp4";
+                String base64Image = imageToBase64(postCardComponents[0].getPath());
+                if(base64Image != null) {
+                    String description = OpenAI.describeImage(base64Image);
+                    if(description != null) {
+                        String audioPath = OpenAI.generateAudio(description, "postcard_start");
+                        if(audioPath != null) audioPaths.add(audioPath);
+                    }
+                }
+
+                String outputPath = outPath + File.separator + "postcard_start_" + UUID.randomUUID() + ".mp4";
                 String[] loopCommand = loopImg(5, postCardComponents[0].getPath(), outputPath);
                 String[] fullCommand = CMD.concat(new String[]{CMD.normalizePath(exePath), "-y"}, loopCommand);
                 if (!CMD.run(fullCommand)) {
                     throw new RuntimeException("Failed to create postcard video: " + postCardComponents[0].getPath());
                 }
-                videoPaths.add(outputPath);
+                firstPostcardPath = outputPath;
                 tempFiles.add(outputPath);
-
-                finalPostcardPath = outputPath;
             }
 
+            // Process main components
+            List<String> componentVideoPaths = new ArrayList<>();
             for (Component component : components) {
-                if (component.returnIFormat().equals("AIAudio")) {
-                    audioPaths.add(component.getPath());
-                } else if (component.returnIFormat().equals("Image")) {
-                    String outputPath = outPath + File.separator + "image_" + UUID.randomUUID() + ".mp4";
-                    String[] loopCommand = loopImg(5, component.getPath(), outputPath);
-                    String[] fullCommand = CMD.concat(new String[]{CMD.normalizePath(exePath), "-y"}, loopCommand);
-                    if (!CMD.run(fullCommand)) {
-                        throw new RuntimeException("Failed to create image video: " + component.getPath());
+                if (component.returnIFormat().equals("Video")) {
+                    // Extract first frame
+                    String framePath = outPath + File.separator + "frame_" + UUID.randomUUID() + ".png";
+                    String[] frameCommand = {
+                            exePath, "-y", "-i", component.getPath(),
+                            "-vframes", "1", "-q:v", "2", framePath
+                    };
+                    if (CMD.run(frameCommand)) {
+                        String base64Frame = imageToBase64(framePath);
+                        if(base64Frame != null) {
+                            String description = OpenAI.describeImage(base64Frame);
+                            if(description != null) {
+                                String audioPath = OpenAI.generateAudio(description, "audio_" + UUID.randomUUID());
+                                if(audioPath != null) {
+                                    audioPaths.add(audioPath);
+                                    // Create video with audio
+                                    String outputPath = outPath + File.separator + "video_" + UUID.randomUUID() + ".mp4";
+                                    String[] mergeCommand = {
+                                            exePath, "-y", "-i", component.getPath(),
+                                            "-i", audioPath, "-c:v", "copy", "-c:a", "aac",
+                                            "-shortest", outputPath
+                                    };
+                                    if (CMD.run(mergeCommand)) {
+                                        componentVideoPaths.add(outputPath);
+                                        tempFiles.add(outputPath);
+                                    }
+                                }
+                            }
+                        }
+                        tempFiles.add(framePath);
                     }
-                    videoPaths.add(outputPath);
-                    tempFiles.add(outputPath);
-                } else if (component.returnIFormat().equals("Video")) {
-                    videoPaths.add(component.getPath());
                 }
             }
 
+            // Process second postcard
+            String secondPostcardPath = null;
             if(postCardComponents[1] != null) {
-                String outputPath = outPath + File.separator + "postcard_" + UUID.randomUUID() + ".mp4";
+                String base64Image = imageToBase64(postCardComponents[1].getPath());
+                if(base64Image != null) {
+                    String description = OpenAI.describeImage(base64Image);
+                    if(description != null) {
+                        String audioPath = OpenAI.generateAudio(description, "postcard_end");
+                        if(audioPath != null) audioPaths.add(audioPath);
+                    }
+                }
+
+                String outputPath = outPath + File.separator + "postcard_end_" + UUID.randomUUID() + ".mp4";
                 String[] loopCommand = loopImg(5, postCardComponents[1].getPath(), outputPath);
                 String[] fullCommand = CMD.concat(new String[]{CMD.normalizePath(exePath), "-y"}, loopCommand);
                 if (!CMD.run(fullCommand)) {
                     throw new RuntimeException("Failed to create postcard video: " + postCardComponents[1].getPath());
                 }
-                videoPaths.add(outputPath);
-                tempFiles.add(outputPath);
-
-                finalPostcardPath = outputPath;
-            }
-
-            List<String> normalizedPaths = new ArrayList<>();
-            for (String videoPath : videoPaths) {
-                String outputPath = outPath + File.separator + "normalized_" + UUID.randomUUID() + ".mp4";
-                String[] normCommand = normalize(videoPath, outputPath, targetFPS, maxRes[0] + ":" + maxRes[1]);
-                String[] fullCommand = CMD.concat(new String[]{CMD.normalizePath(exePath), "-y"}, normCommand);
-                if (!CMD.run(fullCommand)) {
-                    throw new RuntimeException("Failed to normalize video: " + videoPath);
-                }
-                normalizedPaths.add(outputPath);
+                secondPostcardPath = outputPath;
                 tempFiles.add(outputPath);
             }
 
+            // Build final video sequence
+            List<String> finalVideoPaths = new ArrayList<>();
+            if(firstPostcardPath != null) finalVideoPaths.add(firstPostcardPath);
+            finalVideoPaths.addAll(componentVideoPaths);
+            if(secondPostcardPath != null) finalVideoPaths.add(secondPostcardPath);
+
+            // Create centered grid for main components only
             String gridPath = outPath + File.separator + "grid_" + UUID.randomUUID() + ".mp4";
-            String[] gridCommand = createGrid(normalizedPaths.toArray(new String[0]), gridPath, targetFPS, maxRes);
+            String[] gridCommand = createGrid(componentVideoPaths.toArray(new String[0]), gridPath, targetFPS, maxRes);
             String[] fullGridCommand = CMD.concat(new String[]{CMD.normalizePath(exePath), "-y"}, gridCommand);
             if (!CMD.run(fullGridCommand)) {
                 throw new RuntimeException("Failed to create video grid");
             }
             tempFiles.add(gridPath);
 
-            String audioMixPath;
+            // Mix audio tracks
+            String audioMixPath = null;
             if (!audioPaths.isEmpty()) {
                 audioMixPath = outPath + File.separator + "mixed_audio_" + UUID.randomUUID() + ".mp3";
                 StringBuilder filterComplex = new StringBuilder();
@@ -256,43 +301,36 @@ public class FFMPEG {
                 }
                 filterComplex.append("amix=inputs=").append(audioPaths.size()).append("[aout]");
 
-                List<Function<String[], String[]>> preMixCommand = List.of(
-                        input -> new String[]{CMD.normalizePath(exePath), "-y"},
-                        input -> inputMany(audioPaths.toArray(new String[0])),
-                        input -> new String[]{"-filter_complex", filterComplex.toString()},
-                        input -> new String[]{"-map", "[aout]"},
-                        input -> new String[]{"-c:a", "libmp3lame"},
-                        input -> output(audioMixPath)
-                );
-
-                String[] mixCommand = Pipeline.biLambda(preMixCommand, CMD::concat);
-
+                String[] mixCommand = {
+                        exePath, "-y",
+                        "-i", "concat:" + String.join("|", audioPaths),
+                        "-filter_complex", filterComplex.toString(),
+                        "-map", "[aout]", "-c:a", "libmp3lame", audioMixPath
+                };
                 if (!CMD.run(mixCommand)) {
                     throw new RuntimeException("Failed to mix audio tracks");
                 }
                 tempFiles.add(audioMixPath);
-            } else {
-                audioMixPath = null;
             }
 
+            // Concatenate final video
             String listPath = outPath + File.separator + "list_" + UUID.randomUUID() + ".txt";
             try (PrintWriter writer = new PrintWriter(listPath)) {
-                writer.println("file '" + gridPath.replace("'", "'\\''") + "'");
-                if (finalPostcardPath != null) {
-                    writer.println("file '" + finalPostcardPath.replace("'", "'\\''") + "'");
+                for (String path : finalVideoPaths) {
+                    writer.println("file '" + path.replace("'", "'\\''") + "'");
                 }
             }
             tempFiles.add(listPath);
 
             String finalOutput = outPath + File.separator + outputFileName;
             List<String> concatCommand = new ArrayList<>();
-            Collections.addAll(concatCommand, CMD.normalizePath(exePath), "-y", "-f", "concat", "-safe", "0", "-i", listPath);
+            Collections.addAll(concatCommand, exePath, "-y", "-f", "concat", "-safe", "0", "-i", listPath);
             if (audioMixPath != null) {
                 Collections.addAll(concatCommand, "-i", audioMixPath, "-c:v", "copy", "-c:a", "aac", "-map", "0:v", "-map", "1:a");
             } else {
                 Collections.addAll(concatCommand, "-c", "copy");
             }
-            concatCommand.add(finalOutput);
+            Collections.addAll(concatCommand, "-vf", "pad=iw:ih:(ow-iw)/2:(oh-ih)/2:color=black", finalOutput);
 
             if (!CMD.run(concatCommand.toArray(new String[0]))) {
                 throw new RuntimeException("Failed to concatenate videos");
@@ -304,6 +342,7 @@ public class FFMPEG {
             cleanTempFiles(tempFiles);
         }
     }
+
 
     private static void cleanTempFiles(List<String> tempFiles) {
         for (String path : tempFiles) {
