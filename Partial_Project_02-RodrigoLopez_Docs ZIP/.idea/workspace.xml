@@ -5,21 +5,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="24d676c5-1f77-469d-8774-9ffd7f40ef0c" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/libraries/Licenses_Strawberry_Perl.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/libraries/json_20231013.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/libraries/src.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/JsonTest.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/edu/up/isgc/vgc/graphic/AudioComponent.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/edu/up/isgc/vgc/tools/OpenAI.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/.gitignore" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/libraries/lib.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/runConfigurations/JavaFX_Config.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Partial_Project_02-RodrigoLopez_Docs ZIP.iml" beforeDir="false" afterPath="$PROJECT_DIR$/Partial_Project_02-RodrigoLopez_Docs ZIP.iml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/edu/up/isgc/vgc/ImageAI.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/edu/up/isgc/vgc/gui/GClient.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/edu/up/isgc/vgc/gui/GClient.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/edu/up/isgc/vgc/tools/CMD.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/edu/up/isgc/vgc/tools/CMD.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/edu/up/isgc/vgc/tools/OpenAIIntegration.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/edu/up/isgc/vgc/tools/OpenAIIntegration.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/edu/up/isgc/vgc/tools/ffmpeg/FFMPEG.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/edu/up/isgc/vgc/tools/ffmpeg/FFMPEG.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/edu/up/isgc/vgc/tools/OpenAI.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/edu/up/isgc/vgc/tools/OpenAI.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -86,7 +73,7 @@
       <option name="presentableId" value="Default" />
       <updated>1743214711462</updated>
       <workItem from="1743214712834" duration="552000" />
-      <workItem from="1743215678757" duration="596000" />
+      <workItem from="1743215678757" duration="2339000" />
     </task>
     <servers />
   </component>
