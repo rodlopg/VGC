@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="Licenses_Strawberry_Perl">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/Tools/exiftool-13.22_64/exiftool_files/Licenses_Strawberry_Perl.zip!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

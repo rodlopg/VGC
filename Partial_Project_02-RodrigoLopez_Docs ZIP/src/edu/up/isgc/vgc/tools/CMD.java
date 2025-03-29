@@ -27,8 +27,7 @@ public class CMD {
             System.out.println("Executing: " + String.join(" ", command));
             Process process = builder.start();
 
-            try (BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(process.getInputStream()))) {
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
                 String line;
                 while ((line = reader.readLine()) != null) {
                     System.out.println("FFmpeg: " + line);
@@ -61,6 +60,7 @@ public class CMD {
             while ((line = reader.readLine()) != null) {
                 output.append(line).append("\n");
             }
+
             int exitCode = process.waitFor();
             System.out.println("Process exited with code: " + exitCode);
             process.destroy();
@@ -88,9 +88,7 @@ public class CMD {
         return output.substring(0, index).trim();
     }
 
-    public static String normalize(String[] command, String trim) {
-        return trimFrom(expect(command), trim);
-    }
+    public static String normalize(String[] command, String trim) { return trimFrom(expect(command), trim); }
 
     public static String[] echo(String[] input) {
         return input;

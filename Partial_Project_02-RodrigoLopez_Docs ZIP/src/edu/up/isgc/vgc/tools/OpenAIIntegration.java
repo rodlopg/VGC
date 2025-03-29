@@ -2,6 +2,7 @@ package edu.up.isgc.vgc.tools;
 
 import edu.up.isgc.vgc.Component;
 import edu.up.isgc.vgc.tools.CMD;
+import org.json.JSONObject;
 
 /**
  * Handles integration with the OpenAI API for generating postcards and text-to-speech narration.
@@ -24,32 +25,50 @@ public class OpenAIIntegration extends Component {
         System.out.println("|||||Type: " + getType());
     }
 
-    /**
-     * Generates a postcard using the OpenAI API.
-     */
-    public String generatePostcard(String prompt) {
-        String[] command = new String[]{
+    // Modified method to handle JSON response and return image URL
+    public String generatePostcard(String mood) {
+        String prompt = createImagePrompt(mood);
+        String jsonPayload = String.format("{\"prompt\": \"%s\", \"n\": 1, \"size\": \"1024x1024\", \"response_format\": \"url\"}",
+                prompt.replace("\"", "\\\""));
+
+        String[] command = {
                 "curl", "-X", "POST", IMAGE_GENERATION_URL,
                 "-H", "Authorization: Bearer " + API_KEY,
                 "-H", "Content-Type: application/json",
-                "-d", "{\"prompt\": \"" + prompt + "\", \"n\": 1, \"size\": \"1024x1024\"}"
+                "-d", jsonPayload
         };
-        return CMD.expect(command);
+
+        String response = CMD.expect(command);
+        JSONObject jsonResponse = new JSONObject(response);
+        return jsonResponse.getJSONArray("data").getJSONObject(0).getString("url");
     }
 
-    /**
-     * Generates text-to-speech narration using the OpenAI API.
-     */
-    public String generateNarration(String text) {
-        String[] command = new String[]{
+    // New method to generate narration and save audio file
+    public String generateNarration(String imageDescription) {
+        String jsonPayload = String.format("{\"model\": \"tts-1\", \"input\": \"%s\", \"voice\": \"alloy\", \"response_format\": \"mp3\"}",
+                imageDescription.replace("\"", "\\\""));
+
+        String outputPath = "narration_" + System.currentTimeMillis() + ".mp3";
+        String[] command = {
                 "curl", "-X", "POST", TEXT_TO_SPEECH_URL,
                 "-H", "Authorization: Bearer " + API_KEY,
                 "-H", "Content-Type: application/json",
-                "-d", "{\"model\": \"tts-1\", \"input\": \"" + text + "\", \"voice\": \"alloy\"}"
+                "-d", jsonPayload,
+                "-o", outputPath
         };
-        return CMD.expect(command);
+
+        CMD.expect(command);
+        return outputPath;
+    }
+
+    private String createImagePrompt(String mood) {
+        return "A beautiful travel postcard showing a destination that evokes " + mood +
+                " mood. Include landmarks, natural scenery, and cultural elements. " +
+                "Use vibrant colors and professional photography style.";
     }
 
     @Override
-    public String returnIFormat(){ return "AIImage"; }
+    public String returnIFormat() { return "AIImage"; }
+
+
 }
