@@ -22,9 +22,9 @@ public class AIImage extends Image {
                 1024,
                 1024,
                 Component.generateNow(),
-                5.0,
+                0.0,
                 "png",
-                AI_PATH + File.separator + imageFile.getName()
+                imageFile.getAbsolutePath()
         );
     }
 }

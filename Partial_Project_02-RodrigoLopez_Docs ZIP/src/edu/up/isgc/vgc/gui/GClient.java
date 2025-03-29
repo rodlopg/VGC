@@ -212,10 +212,13 @@ public class GClient extends Application {
                 if (generatedImages.length < 2) {
                     throw new Exception("Failed to generate two postcards");
                 }
+                Component[] postCards = new Component[2];
 
                 Platform.runLater(() -> {
-                    AIImage.createFromPath(generatedImages[0]);
-                    AIImage.createFromPath(generatedImages[1]);
+                    postCards[0] = AIImage.createFromPath(generatedImages[0]);
+                    postCards[1] = AIImage.createFromPath(generatedImages[1]);
+
+                    Component.setPostCards(postCards);
                     progressIndicator.setVisible(false);
                 });
             } catch (Exception e) {

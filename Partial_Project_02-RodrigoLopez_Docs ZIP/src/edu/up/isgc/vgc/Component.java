@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Objects;
 
 public abstract class Component implements Comparable<Component> {
     private static int[] maxResolution = new int[]{0, 0};
@@ -14,6 +15,7 @@ public abstract class Component implements Comparable<Component> {
     private String type, path, date;
     private static int compAmount = 0;
     private static ArrayList<Component> components = new ArrayList<Component>();
+    private static Component[] postCards = new Component[2];
 
     public Component(int width, int height, String date, Double duration, String type, String path) {
         this.setWidth(width);
@@ -22,7 +24,9 @@ public abstract class Component implements Comparable<Component> {
         this.setDuration(duration);
         this.setType(type);
         this.setPath(path);
-        Component.addComponent(this);
+        if(!Objects.equals(this.returnIFormat(), "AIImage")) {
+            Component.addComponent(this);
+        }
     }
 
     public static int[] getMaxResolution() {
@@ -59,6 +63,9 @@ public abstract class Component implements Comparable<Component> {
     public static ArrayList<Component> getComponents() { return components; }
     public static void setComponents(ArrayList<Component> components) { Component.components = components; }
 
+    public static Component[] getPostCards() { return postCards; }
+    public static void setPostCards(Component[] postCards) { Component.postCards = postCards; }
+
     public abstract String returnIFormat();
 
     private static void addComponent(Component component) {
@@ -90,4 +97,5 @@ public abstract class Component implements Comparable<Component> {
         // Format the date
         return now.format(exifFormatter);
     }
+
 }
