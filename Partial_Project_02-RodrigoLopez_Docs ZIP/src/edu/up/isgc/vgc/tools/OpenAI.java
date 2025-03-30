@@ -6,8 +6,13 @@ import org.json.JSONObject;
 import java.awt.image.BufferedImage;
 import java.io.*;
 import java.net.HttpURLConnection;
+import java.net.URI;
 import java.net.URL;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Base64;
 import java.util.List;
 import java.util.function.Function;
@@ -28,11 +33,6 @@ public class OpenAI {
 
     public static String[] generatePostcards(String prompt, int count) {
         try {
-            // Validate input
-            if (prompt == null || prompt.trim().isEmpty()) {
-                throw new IllegalArgumentException("Prompt cannot be empty");
-            }
-
             JSONObject payload = new JSONObject()
                     .put("model", "dall-e-2")
                     .put("prompt", "Generate a postcard image of: " + prompt)
@@ -40,45 +40,34 @@ public class OpenAI {
                     .put("size", "1024x1024")
                     .put("response_format", "b64_json");
 
-            // Properly escape the JSON payload for command line
-            String jsonPayload = payload.toString()
-                    .replace("\"", "\\\"")  // Escape double quotes
-                    .replace("$", "\\$");    // Escape dollar signs
-
-            // Build curl command with proper escaping
+            // Windows-safe curl command
             String[] command = {
+                    "cmd.exe", "/c", // Start new shell
                     "curl",
-                    IMG_GEN_URL,
                     "-X", "POST",
-                    "-H", "Content-Type: application/json",
-                    "-H", "Authorization: Bearer " + API_KEY.trim(),  // Ensure no whitespace
-                    "-d", "\"" + jsonPayload + "\"",  // Wrap payload in quotes
-                    "--fail",  // Fail on HTTP errors
-                    "--silent",
-                    "--show-error"
+                    IMG_GEN_URL,
+                    "-H", "\"Content-Type: application/json\"",
+                    "-H", "\"Authorization: Bearer " + API_KEY + "\"",
+                    "-d", "\"" + payload.toString().replace("\"", "\\\"") + "\"",
+                    "--ssl-no-revoke", // Bypass Windows certificate check
+                    "--fail-with-body" // Better error handling
             };
 
-            // Debug: Print the exact command being executed
-            System.out.println("Executing command: " + String.join(" ", command));
+            // Debug: Print the exact command
+            System.out.println("Executing: " + String.join(" ", command));
 
-            // Execute command
-            String response = CMD.expect(command);
+            Process process = Runtime.getRuntime().exec(command);
+            String response = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
 
-            if (response == null || response.trim().isEmpty()) {
-                throw new IOException("Empty response from API. Possible causes:\n" +
-                        "1. Invalid API key\n" +
-                        "2. Network issues\n" +
-                        "3. API service outage\n" +
-                        "4. Incorrect payload formatting");
+            int exitCode = process.waitFor();
+            if (exitCode != 0) {
+                String error = new String(process.getErrorStream().readAllBytes(), StandardCharsets.UTF_8);
+                throw new IOException("cURL failed (" + exitCode + "): " + error);
             }
 
-            // Debug: Print the raw response
-            System.out.println("Raw API response: " + response);
             return handleMultipleImages(response, "postcard");
-
         } catch (Exception e) {
-            System.err.println("Postcard generation failed: " + e.getMessage());
-            e.printStackTrace();
+            System.err.println("Error: " + e.getMessage());
             return new String[0];
         }
     }
@@ -198,18 +187,26 @@ public class OpenAI {
                     .put("voice", "alloy")
                     .put("response_format", "mp3");
 
-            List<Function<String[], String[]>> pipeline = List.of(
-                    input -> new String[]{"curl", TXT_AUDIO_URL},
-                    input -> new String[]{"-X", "POST"},
-                    input -> new String[]{"-H", "Content-Type: application/json"},
-                    input -> new String[]{"-H", "Authorization: Bearer " + API_KEY},
-                    input -> new String[]{"-d", payload.toString()},
-                    input -> new String[]{"-o", GEN_IMG_DIR + outputName + ".mp3"}
-            );
+            // Use Java HttpClient instead of curl
+            HttpClient client = HttpClient.newHttpClient();
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(TXT_AUDIO_URL))
+                    .header("Content-Type", "application/json")
+                    .header("Authorization", "Bearer " + API_KEY)
+                    .POST(HttpRequest.BodyPublishers.ofString(payload.toString()))
+                    .timeout(Duration.ofSeconds(30))
+                    .build();
 
-            String[] command = Pipeline.biLambda(pipeline, CMD::concat);
-            CMD.expect(command);
-            return GEN_IMG_DIR + outputName + ".mp3";
+            HttpResponse<InputStream> response = client.send(request, HttpResponse.BodyHandlers.ofInputStream());
+
+            if (response.statusCode() == 200) {
+                String outputPath = GEN_IMG_DIR + outputName + ".mp3";
+                try (OutputStream out = new FileOutputStream(outputPath)) {
+                    response.body().transferTo(out);
+                }
+                return outputPath;
+            }
+            return null;
         } catch (Exception e) {
             System.err.println("Audio generation failed: " + e.getMessage());
             return null;

@@ -221,11 +221,31 @@ public class FFMPEG {
             List<String> componentVideoPaths = new ArrayList<>();
             for (Component component : components) {
                 if (component.returnIFormat().equals("Video")) {
-                    // Extract first frame
+                    // Normalize the video first
+                    String normalizedVideoPath = outPath + File.separator + "normalized_" + UUID.randomUUID() + ".mp4";
+                    String[] normalizeCommand = normalize(
+                            component.getPath(),
+                            normalizedVideoPath,
+                            targetFPS,
+                            maxRes[0] + ":" + maxRes[1]
+                    );
+                    String[] fullNormalizeCommand = CMD.concat(
+                            new String[]{CMD.normalizePath(exePath), "-y"},
+                            normalizeCommand
+                    );
+                    if (!CMD.run(fullNormalizeCommand)) {
+                        throw new RuntimeException("Normalization failed for: " + component.getPath());
+                    }
+                    tempFiles.add(normalizedVideoPath);
+
+                    // Extract first frame from normalized video
                     String framePath = outPath + File.separator + "frame_" + UUID.randomUUID() + ".png";
                     String[] frameCommand = {
-                            exePath, "-y", "-i", component.getPath(),
-                            "-vframes", "1", "-q:v", "2", framePath
+                            exePath, "-y",
+                            "-i", normalizedVideoPath,
+                            "-vframes", "1",
+                            "-q:v", "2",
+                            framePath
                     };
                     if (CMD.run(frameCommand)) {
                         String base64Frame = imageToBase64(framePath);
@@ -235,12 +255,16 @@ public class FFMPEG {
                                 String audioPath = OpenAI.generateAudio(description, "audio_" + UUID.randomUUID());
                                 if(audioPath != null) {
                                     audioPaths.add(audioPath);
-                                    // Create video with audio
+                                    // Create video with audio using normalized video
                                     String outputPath = outPath + File.separator + "video_" + UUID.randomUUID() + ".mp4";
                                     String[] mergeCommand = {
-                                            exePath, "-y", "-i", component.getPath(),
-                                            "-i", audioPath, "-c:v", "copy", "-c:a", "aac",
-                                            "-shortest", outputPath
+                                            exePath, "-y",
+                                            "-i", normalizedVideoPath,
+                                            "-i", audioPath,
+                                            "-c:v", "copy",
+                                            "-c:a", "aac",
+                                            "-shortest",
+                                            outputPath
                                     };
                                     if (CMD.run(mergeCommand)) {
                                         componentVideoPaths.add(outputPath);
