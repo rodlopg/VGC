@@ -278,46 +278,50 @@ public class FFMPEG {
     private static String processMedia(Component component, int targetFPS, int[] maxRes, List<String> tempFiles) {
         try {
             String outputPath = outPath + File.separator + "normalized_" + UUID.randomUUID() + ".mp4";
-            String outputPathLoopedImg = component.getPath();
+
             if(component.returnIFormat().equals("Image")) {
-                outputPathLoopedImg = outPath + File.separator + "looped_" + UUID.randomUUID() + ".mp4";
-                String[] command = loopImg(5, component.getPath(), outputPathLoopedImg);
-                String[] fullCommand = CMD.concat(new String[]{
-                        CMD.normalizePath(exePath), "-y"
-                }, command);
+                // Generate silent audio
+                String silentAudio = outPath + File.separator + "silent_" + UUID.randomUUID() + ".aac";
+                String[] silentCommand = {
+                        exePath, "-y",
+                        "-f", "lavfi",
+                        "-i", "aevalsrc=0:d=20",
+                        "-c:a", "aac",
+                        silentAudio
+                };
+                if(!CMD.run(silentCommand)) return null;
 
-                if(!CMD.run(fullCommand)) {
-                    throw new Exception("Loop creation failed for: " + component.getPath());
-                }
+                // Create video with silent audio
+                String[] loopCommand = {
+                        exePath, "-y",
+                        "-loop", "1",
+                        "-i", component.getPath(),
+                        "-i", silentAudio,
+                        "-vf", "scale=" + maxRes[0] + ":-1:flags=lanczos",
+                        "-t", "20",
+                        "-c:v", "libx264",
+                        "-crf", "18",
+                        "-preset", "ultrafast",
+                        "-shortest",
+                        outputPath
+                };
+                if(!CMD.run(loopCommand)) return null;
+
+                tempFiles.add(silentAudio);
+            } else {
+                // Existing video normalization code
+                String[] command = normalize(
+                        component.getPath(),
+                        outputPath,
+                        targetFPS,
+                        maxRes[0] + ":" + maxRes[1]
+                );
+                String[] fullCommand = CMD.concat(new String[]{exePath, "-y"}, command);
+                if(!CMD.run(fullCommand)) return null;
             }
 
-            String[] commandN = normalize(
-                    outputPathLoopedImg,
-                    outputPath,
-                    targetFPS,
-                    maxRes[0] + ":" + maxRes[1]
-            );
-
-            // Add input validation
-            if(!new File(component.getPath()).exists()) {
-                throw new IOException("Source file not found: " + component.getPath());
-            }
-
-            String[] fullCommandN = CMD.concat(new String[]{
-                    CMD.normalizePath(exePath), "-y"
-            }, commandN);
-
-            if(!CMD.run(fullCommandN)) {
-                throw new Exception("Normalization failed for: " + component.getPath());
-            }
-
-            if(outputPath != null && new File(outputPath).exists()) {
-                tempFiles.add(outputPath);
-                tempFiles.add(outputPathLoopedImg);
-                return outputPath;
-            }
-
-            return null;
+            tempFiles.add(outputPath);
+            return outputPath;
         } catch (Exception e) {
             System.err.println("Media processing error: " + e.getMessage());
             return null;
@@ -332,25 +336,42 @@ public class FFMPEG {
             if(!CMD.run(frameCommand)) return videoPath;
 
             // Generate audio
-            System.out.println("#### ABOUT TO GENERATE AUDIO DESCRIPTION");
             String audioPath = generateAudioFromFrame(framePath, tempFiles);
             if(audioPath == null) return videoPath;
 
-            System.out.println("!!!!!!!!!! AUDIO DESCRIPTION GENERATED");
-            // Merge audio with video
+            // Get audio duration
+            String duration = getMediaDuration(audioPath);
+
+            // Merge audio with video (match durations)
             String mergedPath = outPath + File.separator + "merged_" + UUID.randomUUID() + ".mp4";
             String[] mergeCommand = {
-                    exePath, "-y", "-i", videoPath, "-i", audioPath,
-                    "-c:v", "copy", "-c:a", "aac", "-shortest", mergedPath
+                    exePath, "-y",
+                    "-i", videoPath,
+                    "-i", audioPath,
+                    "-filter_complex", "[0:v]setpts=PTS/(" + duration + "/20)[v];[1:a]atempo=1[a]",
+                    "-map", "[v]",
+                    "-map", "[a]",
+                    "-c:v", "libx264",
+                    "-crf", "18",
+                    "-preset", "ultrafast",
+                    "-c:a", "aac",
+                    "-shortest",
+                    mergedPath
             };
-            if(!CMD.run(mergeCommand)) return videoPath;
 
-            System.out.println("$$$$$$$$ Audio merged SUCCESFULLY");
+            if(!CMD.run(mergeCommand)) return videoPath;
             return mergedPath;
         } catch (Exception e) {
             System.err.println("Audio addition failed: " + e.getMessage());
             return videoPath;
         }
+    }
+
+    private static String getMediaDuration(String filePath) {
+        String[] command = {exePath, "-i", filePath};
+        String output = CMD.expect(command);
+        return output.contains("Duration:") ?
+                output.split("Duration:")[1].split(",")[0].trim() : "20.0";
     }
 
     private static String generateAudioFromFrame(String framePath, List<String> tempFiles) {
