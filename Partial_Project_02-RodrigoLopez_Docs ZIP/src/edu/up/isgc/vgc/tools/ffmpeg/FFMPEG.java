@@ -195,7 +195,7 @@ public class FFMPEG {
             List<String> audioPaths = new ArrayList<>();
             Component[] postCardComponents = Component.getPostCards();
 
-            // Process first postcard (NO AUDIO DESCRIPTION)
+            // Process first postcard
             String firstPostcardPath = null;
             if(postCardComponents[0] != null) {
                 String outputPath = outPath + File.separator + "postcard_start_" + UUID.randomUUID() + ".mp4";
@@ -207,7 +207,7 @@ public class FFMPEG {
                 firstPostcardPath = outputPath;
                 tempFiles.add(outputPath);
 
-                // Capture screenshot from postcard video
+                // Capture screenshot
                 String framePath = outPath + File.separator + "postcard_start_frame_" + UUID.randomUUID() + ".png";
                 String[] frameCommand = {
                         exePath, "-y", "-i", outputPath,
@@ -288,7 +288,7 @@ public class FFMPEG {
                 }
             }
 
-            // Process second postcard (NO AUDIO DESCRIPTION)
+            // Process second postcard
             String secondPostcardPath = null;
             if(postCardComponents[1] != null) {
                 String outputPath = outPath + File.separator + "postcard_end_" + UUID.randomUUID() + ".mp4";
@@ -300,7 +300,7 @@ public class FFMPEG {
                 secondPostcardPath = outputPath;
                 tempFiles.add(outputPath);
 
-                // Capture screenshot from postcard video
+                // Capture screenshot
                 String framePath = outPath + File.separator + "postcard_end_frame_" + UUID.randomUUID() + ".png";
                 String[] frameCommand = {
                         exePath, "-y", "-i", outputPath,
@@ -311,11 +311,11 @@ public class FFMPEG {
                 }
             }
 
-            // Build final sequence (postcards + grid)
+            // Build final sequence
             List<String> finalVideoPaths = new ArrayList<>();
             if(firstPostcardPath != null) finalVideoPaths.add(firstPostcardPath);
 
-            // Create grid from main components
+            // Create grid from components
             String gridPath = outPath + File.separator + "grid_" + UUID.randomUUID() + ".mp4";
             String[] gridCommand = createGrid(componentVideoPaths.toArray(new String[0]), gridPath, targetFPS, maxRes);
             String[] fullGridCommand = CMD.concat(new String[]{CMD.normalizePath(exePath), "-y"}, gridCommand);
@@ -327,7 +327,7 @@ public class FFMPEG {
 
             if(secondPostcardPath != null) finalVideoPaths.add(secondPostcardPath);
 
-            // Fix audio mixing with proper inputs
+            // Mix audio
             String audioMixPath = null;
             if (!audioPaths.isEmpty()) {
                 audioMixPath = outPath + File.separator + "mixed_audio_" + UUID.randomUUID() + ".mp3";
@@ -372,12 +372,21 @@ public class FFMPEG {
             String finalOutput = outPath + File.separator + outputFileName;
             List<String> concatCommand = new ArrayList<>();
             Collections.addAll(concatCommand, exePath, "-y", "-f", "concat", "-safe", "0", "-i", listPath);
+
+            // Modified section: Remove stream copy when using filters
             if (audioMixPath != null) {
-                Collections.addAll(concatCommand, "-i", audioMixPath, "-c:v", "copy", "-c:a", "aac", "-map", "0:v", "-map", "1:a");
+                Collections.addAll(concatCommand, "-i", audioMixPath);
+                Collections.addAll(concatCommand, lxcEncode(0, 0)); // Add video encoding
+                Collections.addAll(concatCommand, "-c:a", "aac");
+                Collections.addAll(concatCommand, "-map", "0:v", "-map", "1:a");
             } else {
-                Collections.addAll(concatCommand, "-c", "copy");
+                Collections.addAll(concatCommand, lxcEncode(0, 0)); // Add video encoding
+                Collections.addAll(concatCommand, "-c:a", "copy");
             }
-            Collections.addAll(concatCommand, "-vf", "pad=iw:ih:(ow-iw)/2:(oh-ih)/2:color=black", finalOutput);
+
+            // Move filter before output
+            Collections.addAll(concatCommand, "-vf", "pad=iw:ih:(ow-iw)/2:(oh-ih)/2:color=black");
+            Collections.addAll(concatCommand, finalOutput);
 
             if (!CMD.run(concatCommand.toArray(new String[0]))) {
                 throw new RuntimeException("Failed to concatenate videos");
@@ -389,7 +398,6 @@ public class FFMPEG {
             cleanTempFiles(tempFiles);
         }
     }
-
 
     private static void cleanTempFiles(List<String> tempFiles) {
         for (String path : tempFiles) {

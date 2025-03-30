@@ -6,11 +6,6 @@
   <component name="ChangeListManager">
     <list default="true" id="fd813f4f-cf0c-4832-a0dd-54245d82ae62" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Outputs/genimages/audio_9de788e2-aa8b-4ee8-9589-64dad4e8302a.mp3" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Outputs/genimages/audio_b449f383-b57f-493c-8af3-ca112aafa528.mp3" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Outputs/genimages/postcard_1743296920838_1.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Outputs/genimages/postcard_1743296920861_2.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Outputs/mixed_audio_1a57e937-f98a-4455-b97b-8534897ab979.mp3" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/src/edu/up/isgc/vgc/tools/ffmpeg/FFMPEG.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/edu/up/isgc/vgc/tools/ffmpeg/FFMPEG.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -113,6 +108,7 @@
       <workItem from="1743215678757" duration="6745000" />
       <workItem from="1743271524256" duration="3100000" />
       <workItem from="1743296810578" duration="1281000" />
+      <workItem from="1743298266486" duration="1252000" />
     </task>
     <servers />
   </component>
