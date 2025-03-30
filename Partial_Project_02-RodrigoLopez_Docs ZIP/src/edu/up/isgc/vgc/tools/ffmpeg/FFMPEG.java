@@ -195,18 +195,9 @@ public class FFMPEG {
             List<String> audioPaths = new ArrayList<>();
             Component[] postCardComponents = Component.getPostCards();
 
-            // Process first postcard
+            // Process first postcard (NO AUDIO DESCRIPTION)
             String firstPostcardPath = null;
             if(postCardComponents[0] != null) {
-                String base64Image = imageToBase64(postCardComponents[0].getPath());
-                if(base64Image != null) {
-                    String description = OpenAI.describeImage(base64Image);
-                    if(description != null) {
-                        String audioPath = OpenAI.generateAudio(description, "postcard_start");
-                        if(audioPath != null) audioPaths.add(audioPath);
-                    }
-                }
-
                 String outputPath = outPath + File.separator + "postcard_start_" + UUID.randomUUID() + ".mp4";
                 String[] loopCommand = loopImg(5, postCardComponents[0].getPath(), outputPath);
                 String[] fullCommand = CMD.concat(new String[]{CMD.normalizePath(exePath), "-y"}, loopCommand);
@@ -215,13 +206,25 @@ public class FFMPEG {
                 }
                 firstPostcardPath = outputPath;
                 tempFiles.add(outputPath);
+
+                // Capture screenshot from postcard video
+                String framePath = outPath + File.separator + "postcard_start_frame_" + UUID.randomUUID() + ".png";
+                String[] frameCommand = {
+                        exePath, "-y", "-i", outputPath,
+                        "-vframes", "1", "-q:v", "2", framePath
+                };
+                if (CMD.run(frameCommand)) {
+                    tempFiles.add(framePath);
+                }
             }
 
             // Process main components
             List<String> componentVideoPaths = new ArrayList<>();
             for (Component component : components) {
+                String processedVideoPath = null;
+
                 if (component.returnIFormat().equals("Video")) {
-                    // Normalize the video first
+                    // Normalize video
                     String normalizedVideoPath = outPath + File.separator + "normalized_" + UUID.randomUUID() + ".mp4";
                     String[] normalizeCommand = normalize(
                             component.getPath(),
@@ -236,18 +239,29 @@ public class FFMPEG {
                     if (!CMD.run(fullNormalizeCommand)) {
                         throw new RuntimeException("Normalization failed for: " + component.getPath());
                     }
+                    processedVideoPath = normalizedVideoPath;
                     tempFiles.add(normalizedVideoPath);
+                } else if (component.returnIFormat().equals("Image")) {
+                    // Process image as looped video
+                    String loopedPath = outPath + File.separator + "looped_" + UUID.randomUUID() + ".mp4";
+                    String[] loopCommand = loopImg(5, component.getPath(), loopedPath);
+                    String[] fullCommand = CMD.concat(new String[]{CMD.normalizePath(exePath), "-y"}, loopCommand);
+                    if (!CMD.run(fullCommand)) {
+                        throw new RuntimeException("Failed to create looped video: " + component.getPath());
+                    }
+                    processedVideoPath = loopedPath;
+                    tempFiles.add(loopedPath);
+                }
 
-                    // Extract first frame from normalized video
+                if (processedVideoPath != null) {
+                    // Capture screenshot
                     String framePath = outPath + File.separator + "frame_" + UUID.randomUUID() + ".png";
                     String[] frameCommand = {
-                            exePath, "-y",
-                            "-i", normalizedVideoPath,
-                            "-vframes", "1",
-                            "-q:v", "2",
-                            framePath
+                            exePath, "-y", "-i", processedVideoPath,
+                            "-vframes", "1", "-q:v", "2", framePath
                     };
                     if (CMD.run(frameCommand)) {
+                        // Generate audio description
                         String base64Frame = imageToBase64(framePath);
                         if(base64Frame != null) {
                             String description = OpenAI.describeImage(base64Frame);
@@ -255,20 +269,16 @@ public class FFMPEG {
                                 String audioPath = OpenAI.generateAudio(description, "audio_" + UUID.randomUUID());
                                 if(audioPath != null) {
                                     audioPaths.add(audioPath);
-                                    // Create video with audio using normalized video
-                                    String outputPath = outPath + File.separator + "video_" + UUID.randomUUID() + ".mp4";
+                                    // Merge audio with video
+                                    String mergedPath = outPath + File.separator + "merged_" + UUID.randomUUID() + ".mp4";
                                     String[] mergeCommand = {
-                                            exePath, "-y",
-                                            "-i", normalizedVideoPath,
-                                            "-i", audioPath,
-                                            "-c:v", "copy",
-                                            "-c:a", "aac",
-                                            "-shortest",
-                                            outputPath
+                                            exePath, "-y", "-i", processedVideoPath,
+                                            "-i", audioPath, "-c:v", "copy", "-c:a", "aac",
+                                            "-shortest", mergedPath
                                     };
                                     if (CMD.run(mergeCommand)) {
-                                        componentVideoPaths.add(outputPath);
-                                        tempFiles.add(outputPath);
+                                        componentVideoPaths.add(mergedPath);
+                                        tempFiles.add(mergedPath);
                                     }
                                 }
                             }
@@ -278,18 +288,9 @@ public class FFMPEG {
                 }
             }
 
-            // Process second postcard
+            // Process second postcard (NO AUDIO DESCRIPTION)
             String secondPostcardPath = null;
             if(postCardComponents[1] != null) {
-                String base64Image = imageToBase64(postCardComponents[1].getPath());
-                if(base64Image != null) {
-                    String description = OpenAI.describeImage(base64Image);
-                    if(description != null) {
-                        String audioPath = OpenAI.generateAudio(description, "postcard_end");
-                        if(audioPath != null) audioPaths.add(audioPath);
-                    }
-                }
-
                 String outputPath = outPath + File.separator + "postcard_end_" + UUID.randomUUID() + ".mp4";
                 String[] loopCommand = loopImg(5, postCardComponents[1].getPath(), outputPath);
                 String[] fullCommand = CMD.concat(new String[]{CMD.normalizePath(exePath), "-y"}, loopCommand);
@@ -298,40 +299,62 @@ public class FFMPEG {
                 }
                 secondPostcardPath = outputPath;
                 tempFiles.add(outputPath);
+
+                // Capture screenshot from postcard video
+                String framePath = outPath + File.separator + "postcard_end_frame_" + UUID.randomUUID() + ".png";
+                String[] frameCommand = {
+                        exePath, "-y", "-i", outputPath,
+                        "-vframes", "1", "-q:v", "2", framePath
+                };
+                if (CMD.run(frameCommand)) {
+                    tempFiles.add(framePath);
+                }
             }
 
-            // Build final video sequence
+            // Build final sequence (postcards + grid)
             List<String> finalVideoPaths = new ArrayList<>();
             if(firstPostcardPath != null) finalVideoPaths.add(firstPostcardPath);
-            finalVideoPaths.addAll(componentVideoPaths);
-            if(secondPostcardPath != null) finalVideoPaths.add(secondPostcardPath);
 
-            // Create centered grid for main components only
+            // Create grid from main components
             String gridPath = outPath + File.separator + "grid_" + UUID.randomUUID() + ".mp4";
             String[] gridCommand = createGrid(componentVideoPaths.toArray(new String[0]), gridPath, targetFPS, maxRes);
             String[] fullGridCommand = CMD.concat(new String[]{CMD.normalizePath(exePath), "-y"}, gridCommand);
             if (!CMD.run(fullGridCommand)) {
                 throw new RuntimeException("Failed to create video grid");
             }
+            finalVideoPaths.add(gridPath);
             tempFiles.add(gridPath);
 
-            // Mix audio tracks
+            if(secondPostcardPath != null) finalVideoPaths.add(secondPostcardPath);
+
+            // Fix audio mixing with proper inputs
             String audioMixPath = null;
             if (!audioPaths.isEmpty()) {
                 audioMixPath = outPath + File.separator + "mixed_audio_" + UUID.randomUUID() + ".mp3";
+                List<String> mixCommandList = new ArrayList<>();
                 StringBuilder filterComplex = new StringBuilder();
+
+                mixCommandList.add(exePath);
+                mixCommandList.add("-y");
+                for (String audioPath : audioPaths) {
+                    mixCommandList.add("-i");
+                    mixCommandList.add(audioPath);
+                }
+
                 for (int i = 0; i < audioPaths.size(); i++) {
-                    filterComplex.append(String.format("[%d:a]", i));
+                    filterComplex.append("[").append(i).append(":a]");
                 }
                 filterComplex.append("amix=inputs=").append(audioPaths.size()).append("[aout]");
 
-                String[] mixCommand = {
-                        exePath, "-y",
-                        "-i", "concat:" + String.join("|", audioPaths),
-                        "-filter_complex", filterComplex.toString(),
-                        "-map", "[aout]", "-c:a", "libmp3lame", audioMixPath
-                };
-                if (!CMD.run(mixCommand)) {
+                mixCommandList.add("-filter_complex");
+                mixCommandList.add(filterComplex.toString());
+                mixCommandList.add("-map");
+                mixCommandList.add("[aout]");
+                mixCommandList.add("-c:a");
+                mixCommandList.add("libmp3lame");
+                mixCommandList.add(audioMixPath);
+
+                if (!CMD.run(mixCommandList.toArray(new String[0]))) {
                     throw new RuntimeException("Failed to mix audio tracks");
                 }
                 tempFiles.add(audioMixPath);
