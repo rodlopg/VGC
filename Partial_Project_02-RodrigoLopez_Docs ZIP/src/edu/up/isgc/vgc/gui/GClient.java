@@ -133,6 +133,9 @@ public class GClient extends Application {
                     throw new Exception("Failed to generate two postcards");
                 }
 
+                Component postCard01 = AIImage.createFromPath(generatedImages[0]);
+                Component postCard02 = AIImage.createFromPath(generatedImages[1]);
+
                 // Process selected files
                 List<Component> components = processFiles(selectedFiles);
 

@@ -16,6 +16,7 @@ public abstract class Component implements Comparable<Component> {
     private static int compAmount = 0;
     private static ArrayList<Component> components = new ArrayList<Component>();
     private static Component[] postCards = new Component[2];
+    private static int postCardsAmount = 0;
 
     public Component(int width, int height, String date, Double duration, String type, String path) {
         this.setWidth(width);
@@ -26,6 +27,9 @@ public abstract class Component implements Comparable<Component> {
         this.setPath(path);
         if(!Objects.equals(this.returnIFormat(), "AIImage")) {
             Component.addComponent(this);
+        }else{
+            Component.getPostCards()[postCardsAmount % 2] = this;
+            Component.setPostCardAmount(postCardsAmount+1);
         }
     }
 
@@ -64,7 +68,7 @@ public abstract class Component implements Comparable<Component> {
     public static void setComponents(ArrayList<Component> components) { Component.components = components; }
 
     public static Component[] getPostCards() { return postCards; }
-    public static void setPostCards(Component[] postCards) { Component.postCards = postCards; }
+    public static void setPostCardAmount(int amount) { Component.postCardsAmount = amount; }
 
     public abstract String returnIFormat();
 
