@@ -348,14 +348,16 @@ public class FFMPEG {
                     exePath, "-y",
                     "-i", videoPath,
                     "-i", audioPath,
-                    "-filter_complex", "[0:v]setpts=PTS/(" + duration + "/20)[v];[1:a]atempo=1[a]",
-                    "-map", "[v]",
-                    "-map", "[a]",
+                    "-map", "0:v",      // Directly map video from first input
+                    "-map", "1:a",      // Directly map audio from second input
                     "-c:v", "libx264",
                     "-crf", "18",
                     "-preset", "ultrafast",
+                    "-pix_fmt", "yuv420p",  // Add pixel format for compatibility
                     "-c:a", "aac",
-                    "-shortest",
+                    "-b:a", "128k",     // Explicit audio bitrate
+                    "-ar", "44100",     // Force output audio to 44100Hz sample rate
+                    "-shortest",        // Optional: match output duration to shortest stream
                     mergedPath
             };
 
