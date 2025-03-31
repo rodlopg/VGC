@@ -5,10 +5,9 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="fd813f4f-cf0c-4832-a0dd-54245d82ae62" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/src/edu/up/isgc/vgc/tools/ffmpeg/Utils.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/edu/up/isgc/vgc/tools/ffmpeg/FFMPEG.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/edu/up/isgc/vgc/tools/ffmpeg/FFMPEG.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/edu/up/isgc/vgc/tools/ffmpeg/Filter.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/edu/up/isgc/vgc/tools/ffmpeg/Filter.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/edu/up/isgc/vgc/tools/ffmpeg/Format.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/edu/up/isgc/vgc/tools/ffmpeg/Format.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -114,7 +113,7 @@
       <workItem from="1743299650753" duration="3027000" />
       <workItem from="1743302750161" duration="10104000" />
       <workItem from="1743361773916" duration="4697000" />
-      <workItem from="1743445220469" duration="8700000" />
+      <workItem from="1743445220469" duration="9099000" />
     </task>
     <servers />
   </component>

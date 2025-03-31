@@ -20,99 +20,6 @@ public class FFMPEG {
     public static void setExePath(String newPath) { exePath = newPath; }
     public static void setOutputPath(String newPath) { outPath = newPath; }
 
-    public static String[] input(String filePath) {
-        return new String[]{"-i", CMD.normalizePath(filePath)};
-    }
-
-    public static String[] inputConcatList(String listFile){
-        return CMD.concat(new String[]{"-f", "concat", "-safe", "0"}, FFMPEG.input(listFile));
-    }
-
-    public static String[] output(String filePath) {
-        return new String[]{CMD.normalizePath(filePath)};
-    }
-
-    public static String[] preset(int preset) {
-        return new String[]{"-preset", Format.getPreset(preset)};
-    }
-
-    public static String[] time(int time) { return new String[]{"-t", Integer.toString(time)}; }
-
-    public static String[] crf(int crf) {
-        return new String[]{"-crf", Format.getCRF(crf)};
-    }
-
-    public static String[] exeOverwrite(){ return new String[]{exePath, "-y"}; }
-
-    public static String[] mapOutput(int iFormat) {
-        return new String[]{"-map", "[out" + Format.getFile(iFormat) + "]"};
-    }
-
-    public static String[] mapStream(int iFormat, int stream) {
-        return new String[]{"-map", stream + ":" + Format.getFile(iFormat)};
-    }
-
-    public static String[] copy(int iFormat) {
-        return new String[]{"-c:" + Format.getFile(iFormat), "copy"};
-    }
-
-    public static String[] cFormat(int iFormat, int cFormat) {
-        return new String[]{"-c:" + Format.getFile(iFormat), Format.getCodec(iFormat, cFormat)};
-    }
-
-    public static String[] cPRate(int newRate) {
-        return new String[]{"-r", Integer.toString(newRate)};
-    }
-
-    public static String[] lxcEncode(int iFormat, int cFormat, int crf, int preset) {
-        List<Function<String[], String[]>> functions = new ArrayList<>();
-        functions.add(input -> new String[]{"-c:" + Format.getFile(iFormat), Format.getCodec(iFormat, cFormat)});
-        if (iFormat == 0) {
-            functions.add(input -> crf(crf));
-            functions.add(input -> preset(preset));
-        }
-        return Pipeline.biLambda(functions, CMD::concat);
-    }
-
-    public static String[] lxcEncode(int iFormat, int cFormat) {
-        return lxcEncode(iFormat, cFormat, 18, 0);
-    }
-
-    public static String[] pixelFormat(int pFormat) {
-        return new String[]{"-pix_fmt", Format.getPixel(pFormat)};
-    }
-
-    public static String[] pixelFormat() {
-        return pixelFormat(0);
-    }
-
-    public static String[] streamCopy(int iFormat){
-        if(iFormat >= 0) return new String[]{"-c:" + Format.getFile(iFormat), "copy"};
-        return new String[]{"-c", "copy"};
-    }
-
-    public static String[] streamCopy(){ return streamCopy(-1); }
-
-    public static String[] addPadding(){ return new String[]{"-vf", "pad=iw:ih:(ow-iw)/2:(oh-ih)/2:color=black"}; }
-
-    public static String[] bitRate(int iFormat, int bitrate, int bFormat){
-        return new String[]{"-b:" + Format.getFile(iFormat), bitrate + Format.getBitUnit(bFormat)};
-    }
-
-    public static String[] sampleRate(int iFormat, int rate){ return new String[]{"-" + Format.getFile(iFormat) +"r", Integer.toString(rate)}; }
-
-    public static String[] pickShortest(){ return new String[]{"-shortest"}; }
-
-    public static String[] pickOneFrame(int quality){
-        String sQuality = Integer.toString(quality%32);
-        return new String[]{"-vframes", "1", "-q:v", sQuality};
-    }
-
-    public static String[] muxQueueSize(int size){  return new String[]{"-max_muxing_queue_size", Integer.toString(size)}; }
-    public static String[] threadQueueSize(int size){  return new String[]{"-thread_queue_size", Integer.toString(size)}; }
-
-    public static String[] loop() { return new String[]{"-loop", "1"}; }
-
     public static String[] loopImg(int duration, String filePath, String outputPath) {
         String sDuration = Integer.toString(duration);
         /*
@@ -135,21 +42,21 @@ public class FFMPEG {
          */
 
         List<Function<String[], String[]>> functions = List.of(
-                input -> FFMPEG.loop(),
-                input -> input(filePath),
-                input -> FFMPEG.time(duration),
+                input -> Utils.loop(),
+                input -> Utils.input(filePath),
+                input -> Utils.time(duration),
                 input -> Filter.simple(new String[]{ "lavfi" }),
-                input -> FFMPEG.input("aevalsrc=0:d=" + sDuration),
+                input -> Utils.input("aevalsrc=0:d=" + sDuration),
                 input -> Filter.simple(0, new String[]{ Filter.sVideo(Component.getMaxResolution()[0], -1, 1)}),
-                input -> FFMPEG.mapStream(0, 0),
-                input -> FFMPEG.mapStream(1, 1),
-                input -> FFMPEG.pickShortest(),
-                input -> FFMPEG.muxQueueSize(1024),
-                input -> FFMPEG.threadQueueSize(1024),
-                input -> FFMPEG.lxcEncode(0, 0),
-                input -> FFMPEG.cFormat(1,0),
-                input -> FFMPEG.pixelFormat(),
-                input -> FFMPEG.output(outputPath)
+                input -> Utils.mapStream(0, 0),
+                input -> Utils.mapStream(1, 1),
+                input -> Utils.pickShortest(),
+                input -> Utils.muxQueueSize(1024),
+                input -> Utils.threadQueueSize(1024),
+                input -> Utils.lxcEncode(0, 0),
+                input -> Utils.cFormat(1,0),
+                input -> Utils.pixelFormat(),
+                input -> Utils.output(outputPath)
         );
         return Pipeline.biLambda(functions, CMD::concat);
     }
@@ -157,7 +64,7 @@ public class FFMPEG {
     public static String[] inputMany(String[] inputFiles) {
         String[] inputCommand = new String[0];
         for (String file : inputFiles) {
-            inputCommand = CMD.concat(inputCommand, input(file));
+            inputCommand = CMD.concat(inputCommand, Utils.input(file));
         }
         return inputCommand;
     }
@@ -188,12 +95,12 @@ public class FFMPEG {
          */
 
         List<Function<String[], String[]>> functions = List.of(
-                input -> input(inputFile),
+                input -> Utils.input(inputFile),
                 input -> Filter.simple(0, new String[]{ CMD.join(filter, ",") }),
-                input -> cPRate(targetFPS),
-                input -> lxcEncode(0, 0),
-                input -> FFMPEG.cFormat( 1, 0),
-                input -> output(outputFile)
+                input -> Utils.cPRate(targetFPS),
+                input -> Utils.lxcEncode(0, 0),
+                input -> Utils.cFormat( 1, 0),
+                input -> Utils.output(outputFile)
         );
 
         return Pipeline.biLambda(functions, CMD::concat);
@@ -246,8 +153,8 @@ public class FFMPEG {
                 input -> new String[]{"-filter_complex", filterComplex.toString()},
                 input -> new String[]{"-map", "[vout]"},
                 input -> new String[]{"-r", Integer.toString(targetFPS)},
-                input -> lxcEncode(0, 0, 18, 0),
-                input -> output(CMD.normalizePath(outputPath))
+                input -> Utils.lxcEncode(0, 0, 18, 0),
+                input -> Utils.output(CMD.normalizePath(outputPath))
         );
 
         return Pipeline.biLambda(functions, CMD::concat);
@@ -365,10 +272,10 @@ public class FFMPEG {
                  */
 
                 List<Function<String[], String[]>> preCommandA = List.of(
-                        input -> FFMPEG.exeOverwrite(),
+                        input -> Utils.exeOverwrite(),
                         input -> Filter.simple(new String[]{ "lavfi" }),
-                        input -> FFMPEG.input("aevalsrc=0:d=20"),
-                        input -> FFMPEG.cFormat(1, 0),
+                        input -> Utils.input("aevalsrc=0:d=20"),
+                        input -> Utils.cFormat(1, 0),
                         input -> new String[]{ silentAudio }
                 );
 
@@ -394,15 +301,15 @@ public class FFMPEG {
                  */
 
                 List<Function<String[], String[]>> preCommand = List.of(
-                        input -> FFMPEG.exeOverwrite(),
-                        input -> FFMPEG.loop(),
+                        input -> Utils.exeOverwrite(),
+                        input -> Utils.loop(),
                         input -> FFMPEG.inputMany(new String[]{component.getPath(), silentAudio}),
                         input -> Filter.simple(0, new String[]{ Filter.sVideo(maxRes[0],-1, 1)} ),
-                        input -> FFMPEG.time(20),
-                        input -> FFMPEG.cFormat(0, 0),
-                        input -> FFMPEG.crf(18),
-                        input -> FFMPEG.preset(0),
-                        input -> FFMPEG.pickShortest(),
+                        input -> Utils.time(20),
+                        input -> Utils.cFormat(0, 0),
+                        input -> Utils.crf(18),
+                        input -> Utils.preset(0),
+                        input -> Utils.pickShortest(),
                         input -> new String[]{ outputPath }
                 );
 
@@ -419,7 +326,7 @@ public class FFMPEG {
                         maxRes[0] + ":" + maxRes[1]
                 );
                 //String[] fullCommand = CMD.concat(new String[]{exePath, "-y"}, command);
-                String[] fullCommand = CMD.concat(FFMPEG.exeOverwrite(), command);
+                String[] fullCommand = CMD.concat(Utils.exeOverwrite(), command);
                 if(!CMD.run(fullCommand)) return null;
             }
 
@@ -438,9 +345,9 @@ public class FFMPEG {
             //String[] frameCommand = {exePath, "-y", "-i", videoPath, "-vframes", "1", "-q:v", "2", framePath};
 
             List<Function<String[], String[]>> preCommandA = List.of(
-                    input -> FFMPEG.exeOverwrite(),
-                    input -> FFMPEG.input(videoPath),
-                    input -> FFMPEG.pickOneFrame(2),
+                    input -> Utils.exeOverwrite(),
+                    input -> Utils.input(videoPath),
+                    input -> Utils.pickOneFrame(2),
                     input -> new String[] {framePath}
             );
 
@@ -476,18 +383,18 @@ public class FFMPEG {
             */
 
             List<Function<String[], String[]>> preCommandB = List.of(
-                    input -> FFMPEG.exeOverwrite(),
+                    input -> Utils.exeOverwrite(),
                     input -> FFMPEG.inputMany(new String[]{videoPath, audioPath}),
-                    input -> FFMPEG.mapStream(0, 0),
-                    input -> FFMPEG.mapStream(1,1),
-                    input -> FFMPEG.cFormat(0,0),
-                    input -> FFMPEG.crf(18),
-                    input -> FFMPEG.preset(0),
-                    input -> FFMPEG.pixelFormat(0),
-                    input -> FFMPEG.cFormat(1,0),
-                    input -> FFMPEG.bitRate(1, 128, 0),
-                    input -> FFMPEG.sampleRate(1, 44100),
-                    input -> FFMPEG.pickShortest(),
+                    input -> Utils.mapStream(0, 0),
+                    input -> Utils.mapStream(1,1),
+                    input -> Utils.cFormat(0,0),
+                    input -> Utils.crf(18),
+                    input -> Utils.preset(0),
+                    input -> Utils.pixelFormat(0),
+                    input -> Utils.cFormat(1,0),
+                    input -> Utils.bitRate(1, 128, 0),
+                    input -> Utils.sampleRate(1, 44100),
+                    input -> Utils.pickShortest(),
                     input -> new String[]{ mergedPath }
             );
 
@@ -504,7 +411,7 @@ public class FFMPEG {
     private static String getMediaDuration(String filePath) {
         //String[] command = {exePath, "-i", filePath};
 
-        String[] command = CMD.concat(new String[]{exePath}, FFMPEG.input(filePath));
+        String[] command = CMD.concat(new String[]{exePath}, Utils.input(filePath));
 
         String output = CMD.expect(command);
         return output.contains("Duration:") ?
@@ -527,10 +434,10 @@ public class FFMPEG {
             //String[] trimCommand = {exePath, "-y", "-i", rawAudio, "-t", "20", "-c", "copy", trimmedAudio};
 
             List<Function<String[], String[]>> preCommand = List.of(
-                    input -> FFMPEG.exeOverwrite(),
-                    input -> FFMPEG.input(rawAudio),
-                    input -> FFMPEG.time(20),
-                    input -> FFMPEG.streamCopy(),
+                    input -> Utils.exeOverwrite(),
+                    input -> Utils.input(rawAudio),
+                    input -> Utils.time(20),
+                    input -> Utils.streamCopy(),
                     input -> new String[]{trimmedAudio}
             );
 
@@ -583,9 +490,9 @@ public class FFMPEG {
             */
 
             List<Function<String[], String[]>> preCommand = List.of(
-                    input -> FFMPEG.exeOverwrite(),
-                    input -> FFMPEG.inputConcatList(listFile),
-                    input -> FFMPEG.streamCopy(),
+                    input -> Utils.exeOverwrite(),
+                    input -> Utils.inputConcatList(listFile),
+                    input -> Utils.streamCopy(),
                     input -> new String[]{tempOutput}
             );
 
@@ -606,11 +513,11 @@ public class FFMPEG {
 
 
             List<Function<String[], String[]>> filterCommands = List.of(
-                    input -> FFMPEG.exeOverwrite(),
-                    input -> FFMPEG.input(tempOutput),
-                    input -> FFMPEG.addPadding(),
-                    input -> lxcEncode(0, 0),
-                    input -> streamCopy(1),
+                    input -> Utils.exeOverwrite(),
+                    input -> Utils.input(tempOutput),
+                    input -> Utils.addPadding(),
+                    input -> Utils.lxcEncode(0, 0),
+                    input -> Utils.streamCopy(1),
                     input -> new String[]{ finalOutput }
             );
 
