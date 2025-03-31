@@ -39,8 +39,11 @@ public class Filter {
     }
 
     public static String[] simple(int iFormat, String[] input) {
-        return CMD.concat(new String[]{"-" + Format.getFile(iFormat) + "f"}, input);
+        if(iFormat >= 0) return CMD.concat(new String[]{"-" + Format.getFile(iFormat) + "f"}, input);
+        else return CMD.concat(new String[]{"-f"}, input);
     }
+
+    public static String[] simple(String[] input) { return simple(-1, input); }
 
     public static String addToComplex(int identifier, int index, int iFormat, int stream, String filter) {
         return getStream(index, iFormat, stream) + filter + "[out" + identifier + "]";
@@ -70,11 +73,18 @@ public class Filter {
         return filter.replaceAll(";+$", "");
     }
 
-    public static String sVideo(String newSize, int forceRatio, int interpolation) {
-        String size = "scale=" + newSize;
-        String ratio = "force_original_aspect_ratio=" + (forceRatio == 0 ? "decrease" : "increase");
-        String interp = interpolation == 1 ? "flags=bicubic" : "";
-        return CMD.join(new String[]{size, ratio, interp}, ":");
+    public static String sVideo(int width, int height, int hQuality, int forceRatio, int interpolation) {
+        String size = "scale=" + width + ":" + height;
+        String ratio = "", interp = "", hqScaling = "";
+
+        if(forceRatio >= 0) ratio = "force_original_aspect_ratio=" + (forceRatio == 0 ? "decrease" : "increase");
+        if(interpolation == 1) interp = "flags=bicubic";
+        else if(hQuality == 1) hqScaling = "flags=lanczos";
+        return CMD.join(new String[]{size, ratio, interp, hqScaling}, ":");
+    }
+
+    public static String sVideo(int width, int height, int hQuality){
+        return sVideo(width, height, hQuality, -1, -1);
     }
 
     public static String setPTS() {

@@ -63,6 +63,6 @@ public class Format {
      * Returns the CRF value for a given index.
      */
     public static String getCRF(int crf) {
-        return Integer.toString(crf % 51);
+        return Integer.toString(crf % 52);
     }
 }
