@@ -23,21 +23,30 @@ import java.nio.file.Paths;
 
 import static env.Environment.API_KEY_HERE;
 
+/**
+ * Utility class for interacting with OpenAI's API services including:
+ * - Image generation (DALL-E)
+ * - Image description (GPT-4 Vision)
+ * - Text-to-speech (TTS)
+ */
 public class OpenAI {
-    // API key loaded from environment
+    // API configuration constants
     private static final String API_KEY = API_KEY_HERE();
-
-    // OpenAI API base URL and endpoints for image generation, text-to-speech, and more
     public static final String OPENAI_URL = "https://api.openai.com/v1";
     private static final String IMG_GEN_URL = OPENAI_URL + "/images/generations";
     private static final String IMG_TXT_URL = OPENAI_URL + "/chat/completions";
     private static final String TXT_AUDIO_URL = OPENAI_URL + "/audio/speech";
     private static final String GEN_IMG_DIR = "Outputs/genimages/";
 
-    // Method to generate postcards using OpenAI's DALL-E 2 model
+    /**
+     * Generates postcard images using DALL-E API
+     * @param prompt The text prompt for image generation
+     * @param count Number of images to generate
+     * @return Array of file paths to generated images
+     */
     public static String[] generatePostcards(String prompt, int count) {
         try {
-            // Construct the JSON payload for the API request
+            // Prepare the JSON payload for DALL-E API
             JSONObject payload = new JSONObject()
                     .put("model", "dall-e-2")
                     .put("prompt", "Generate a postcard image of: " + prompt)
@@ -45,34 +54,34 @@ public class OpenAI {
                     .put("size", "1024x1024")
                     .put("response_format", "b64_json");
 
-            // Command to call OpenAI's API using curl (Windows safe)
+            // Windows-safe curl command construction
             String[] command = {
-                    "cmd.exe", "/c", // Start a new shell
+                    "cmd.exe", "/c", // Start new shell
                     "curl",
-                    "-X", "POST", // HTTP POST request
+                    "-X", "POST",
                     IMG_GEN_URL,
                     "-H", "\"Content-Type: application/json\"",
                     "-H", "\"Authorization: Bearer " + API_KEY + "\"",
                     "-d", "\"" + payload.toString().replace("\"", "\\\"") + "\"",
-                    "--ssl-no-revoke", // Bypass Windows SSL certificate check
-                    "--fail-with-body" // Include error body in case of failure
+                    "--ssl-no-revoke", // Bypass Windows certificate check
+                    "--fail-with-body" // Better error handling
             };
 
-            // Debug: Print the exact curl command being executed
+            // Debug: Print the exact command
             System.out.println("Executing: " + String.join(" ", command));
 
-            // Execute the curl command and read the response
+            // Execute the curl command
             Process process = Runtime.getRuntime().exec(command);
             String response = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
 
-            // Wait for the process to finish and check for errors
+            // Check for errors
             int exitCode = process.waitFor();
             if (exitCode != 0) {
                 String error = new String(process.getErrorStream().readAllBytes(), StandardCharsets.UTF_8);
                 throw new IOException("cURL failed (" + exitCode + "): " + error);
             }
 
-            // Handle multiple generated images and return their paths
+            // Process the API response and save images
             return handleMultipleImages(response, "postcard");
         } catch (Exception e) {
             System.err.println("Error: " + e.getMessage());
@@ -80,7 +89,12 @@ public class OpenAI {
         }
     }
 
-    // Method to process and save multiple images from the API response
+    /**
+     * Processes API response containing multiple images and saves them to disk
+     * @param response JSON response from OpenAI API
+     * @param baseName Base name for saved image files
+     * @return Array of paths to saved image files
+     */
     private static String[] handleMultipleImages(String response, String baseName) {
         try {
             // Trim and validate response
@@ -89,24 +103,25 @@ public class OpenAI {
                 throw new IOException("Empty response data");
             }
 
-            // Parse the JSON response from OpenAI
+            // Parse JSON response
             JSONObject json = new JSONObject(response);
 
-            // Check for errors in the API response
+            // Check for API errors
             if (json.has("error")) {
                 throw new IOException("API Error: " + json.getJSONObject("error").getString("message"));
             }
 
-            // Extract image data and save images to files
+            // Process each image in the response
             JSONArray data = json.getJSONArray("data");
             String[] imagePaths = new String[data.length()];
 
+            // Ensure output directory exists
             Path outputDir = Paths.get(GEN_IMG_DIR);
             if (!Files.exists(outputDir)) {
                 Files.createDirectories(outputDir);
             }
 
-            // Save each image and store the file paths
+            // Save each image to disk
             for (int i = 0; i < data.length(); i++) {
                 String base64Image = data.getJSONObject(i).getString("b64_json");
                 String fileName = baseName + "_" + System.currentTimeMillis() + "_" + (i+1) + ".png";
@@ -126,10 +141,14 @@ public class OpenAI {
         }
     }
 
-    // Method to describe an image using OpenAI's GPT model
+    /**
+     * Generates a text description of an image using GPT-4 Vision
+     * @param imageInput Either a URL or base64-encoded image data
+     * @return Text description of the image
+     */
     public static String describeImage(String imageInput) {
         try {
-            // Set up HTTP connection to the OpenAI API for image description
+            // Set up HTTP connection to OpenAI API
             URL url = new URL(IMG_TXT_URL);
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("POST");
@@ -137,7 +156,7 @@ public class OpenAI {
             conn.setRequestProperty("Authorization", "Bearer " + API_KEY);
             conn.setDoOutput(true);
 
-            // Prepare the image input as either URL or Base64 data
+            // Prepare image content based on input type (URL or base64)
             JSONObject imageContent = new JSONObject();
             if (imageInput.startsWith("http://") || imageInput.startsWith("https://")) {
                 imageContent.put("type", "image_url")
@@ -149,7 +168,7 @@ public class OpenAI {
                                 .put("url", "data:image/png;base64," + base64Data));
             }
 
-            // Set up the user message to request a description from GPT-4o
+            // Construct the message payload
             JSONObject message = new JSONObject()
                     .put("role", "user")
                     .put("content", new JSONArray()
@@ -159,25 +178,25 @@ public class OpenAI {
                             .put(imageContent)
                     );
 
-            // Construct the final payload for the API request
+            // Complete API request payload
             JSONObject payload = new JSONObject()
                     .put("model", "gpt-4o")
                     .put("messages", new JSONArray().put(message))
                     .put("max_tokens", 300);
 
-            // Send the API request
+            // Send the request
             try (OutputStream os = conn.getOutputStream()) {
                 byte[] input = payload.toString().getBytes(StandardCharsets.UTF_8);
                 os.write(input, 0, input.length);
             }
 
-            // Check the response status
+            // Check for errors
             if (conn.getResponseCode() != 200) {
                 System.err.println("API Error: " + conn.getResponseMessage());
                 return null;
             }
 
-            // Read and parse the response to extract the description
+            // Read and parse the response
             try (BufferedReader br = new BufferedReader(
                     new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8))) {
                 StringBuilder response = new StringBuilder();
@@ -197,17 +216,22 @@ public class OpenAI {
         }
     }
 
-    // Method to generate audio from text using OpenAI's text-to-speech model
+    /**
+     * Converts text to speech using OpenAI's TTS API
+     * @param text The text to convert to speech
+     * @param outputName Base name for the output audio file
+     * @return Path to the generated MP3 file
+     */
     public static String generateAudio(String text, String outputName) {
         try {
-            // Prepare the payload for text-to-speech API request
+            // Prepare the TTS API request payload
             JSONObject payload = new JSONObject()
                     .put("model", "tts-1")
                     .put("input", text)
                     .put("voice", "alloy")
                     .put("response_format", "mp3");
 
-            // Use Java HttpClient to send the request
+            // Use Java's HttpClient for the API request
             HttpClient client = HttpClient.newHttpClient();
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(TXT_AUDIO_URL))
@@ -217,10 +241,9 @@ public class OpenAI {
                     .timeout(Duration.ofSeconds(30))
                     .build();
 
-            // Send the request and receive the response
+            // Send request and handle response
             HttpResponse<InputStream> response = client.send(request, HttpResponse.BodyHandlers.ofInputStream());
 
-            // If successful, save the audio file
             if (response.statusCode() == 200) {
                 String outputPath = GEN_IMG_DIR + outputName + ".mp3";
                 try (OutputStream out = new FileOutputStream(outputPath)) {
@@ -235,35 +258,69 @@ public class OpenAI {
         }
     }
 
-    // Helper method to determine the valid image size based on dimensions
+    /**
+     * Determines the appropriate image size for DALL-E generation
+     * @param width Desired image width
+     * @param height Desired image height
+     * @return String representing the closest supported size
+     */
     private static String getValidSize(int width, int height) {
         if (width >= 1024 && height >= 1024) return "1024x1024";
         if (width > height) return "1792x1024";
         return "1024x1792";
     }
 
-    // Helper method for handling multiple images based on URLs
-    public static String[] processImages(List<String> imageUrls) {
-        return imageUrls.stream().map(imageUrl -> {
-            try {
-                return generatePostcards(imageUrl, 3)[0]; // Take the first generated postcard image
-            } catch (Exception e) {
-                return "error";
-            }
-        }).toArray(String[]::new);
+    /**
+     * Processes a single image response from the API
+     * @param response JSON response from OpenAI
+     * @param name Base name for the output file
+     * @return Path to the saved image file
+     */
+    private static String handleImageResponse(String response, String name) {
+        try {
+            // Parse the JSON response
+            JSONObject json = new JSONObject(response);
+            String base64Image = json.getJSONArray("data")
+                    .getJSONObject(0)
+                    .getString("b64_json");
+
+            // Save the image and return its path
+            String outputPath = GEN_IMG_DIR + name + ".png";
+            saveBase64Image(base64Image, outputPath);
+            return outputPath;
+        } catch (Exception e) {
+            System.err.println("Failed to process image response: " + e.getMessage());
+            return null;
+        }
     }
 
-    // Helper method to fetch specific image from its URL and validate output file
-    public static String fetchImage(String imageUrl) {
+    /**
+     * Saves a base64-encoded image to disk
+     * @param base64Image The image data in base64 format
+     * @param outputPath Path where to save the image
+     */
+    private static void saveBase64Image(String base64Image, String outputPath) {
         try {
-            URL url = new URL(imageUrl);
-            BufferedImage img = ImageIO.read(url);
-            if (img == null) {
-                return "Error downloading image";
+            // Decode and save the image
+            byte[] imageBytes = Base64.getDecoder().decode(base64Image);
+            Path outputDir = Paths.get(GEN_IMG_DIR);
+            if (!Files.exists(outputDir)) {
+                Files.createDirectories(outputDir);
             }
-            return "Download successful!";
+            try (OutputStream stream = new FileOutputStream(outputPath)) {
+                stream.write(imageBytes);
+            }
+
+            // Verify the image was saved correctly
+            BufferedImage image = ImageIO.read(new File(outputPath));
+            if (image == null) {
+                throw new IOException("Invalid image data received");
+            }
         } catch (IOException e) {
-            return "Error downloading image: " + e.getMessage();
+            System.err.println("Image save failed: " + e.getMessage());
+            new File(outputPath).delete();
+        } catch (IllegalArgumentException e) {
+            System.err.println("Invalid Base64 data: " + e.getMessage());
         }
     }
 }
