@@ -6,8 +6,13 @@
   <component name="ChangeListManager">
     <list default="true" id="fd813f4f-cf0c-4832-a0dd-54245d82ae62" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/edu/up/isgc/vgc/tools/EXIF.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/edu/up/isgc/vgc/tools/EXIF.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/edu/up/isgc/vgc/tools/OpenAI.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/edu/up/isgc/vgc/tools/OpenAI.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Main.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Main.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/edu/up/isgc/vgc/Component.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/edu/up/isgc/vgc/Component.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/edu/up/isgc/vgc/graphic/Edit.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/edu/up/isgc/vgc/graphic/Image.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/edu/up/isgc/vgc/graphic/Image.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/edu/up/isgc/vgc/graphic/Video.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/edu/up/isgc/vgc/graphic/Video.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/edu/up/isgc/vgc/gui/GClient.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/edu/up/isgc/vgc/gui/GClient.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/edu/up/isgc/vgc/tools/ffmpeg/FFMPEG.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/edu/up/isgc/vgc/tools/ffmpeg/FFMPEG.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -81,7 +86,7 @@
   </component>
   <component name="RunManager">
     <configuration name="VGC_Config" type="Application" factoryName="Application">
-      <option name="MAIN_CLASS_NAME" value="edu.up.isgc.vgc.gui.GClient" />
+      <option name="MAIN_CLASS_NAME" value="Main" />
       <module name="Partial_Project_02-RodrigoLopez_Docs ZIP" />
       <option name="VM_PARAMETERS" value="--module-path &quot;.\Tools\javafx-sdk-23.0.2\lib&quot; --add-modules javafx.controls,javafx.fxml" />
       <method v="2">
@@ -115,7 +120,12 @@
       <workItem from="1743361773916" duration="4697000" />
       <workItem from="1743445220469" duration="9470000" />
       <workItem from="1743468900858" duration="3107000" />
-      <workItem from="1743473630939" duration="5737000" />
+      <workItem from="1743473630939" duration="6414000" />
+      <workItem from="1743521900597" duration="4042000" />
+      <workItem from="1743526953483" duration="2385000" />
+      <workItem from="1743533441297" duration="2041000" />
+      <workItem from="1743535562557" duration="369000" />
+      <workItem from="1743536152995" duration="1710000" />
     </task>
     <servers />
   </component>

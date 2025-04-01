@@ -9,7 +9,7 @@ import java.util.Objects;
 public abstract class Component implements Comparable<Component> {
 
     // Static fields for max resolution, component count, and collection of components
-    private static int[] maxResolution = new int[]{0, 0};  // [width, height] of the max resolution encountered
+    private static int[] maxResolution = new int[]{1920, 1080};  // [width, height] of the max resolution encountered
     private static int compAmount = 0;  // Total number of components
     private static ArrayList<Component> components = new ArrayList<Component>();  // List of components
     private static Component[] postCards = new Component[2];  // Array to hold post cards (maximum of 2)
@@ -89,14 +89,7 @@ public abstract class Component implements Comparable<Component> {
     private static void addComponent(Component component) {
         components.add(component);  // Add the component to the list
         setCompAmount(components.size());  // Update the total component count
-
-        // Update the maximum resolution if the component has a higher resolution
-        if (component.getWidth() > maxResolution[0]) {
-            setMaxResolution(new int[]{
-                    Math.max(component.getWidth(), maxResolution[0]),
-                    Math.max(component.getHeight(), maxResolution[1])
-            });
-        }
+        Component.sortComponents();
     }
 
     // Implementing compareTo method for Comparable interface, comparing by date
@@ -120,4 +113,6 @@ public abstract class Component implements Comparable<Component> {
         // Format the current date and time into the EXIF format and return it
         return now.format(exifFormatter);
     }
+
+    public abstract Component copyTo(String newPath);
 }

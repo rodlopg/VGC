@@ -77,21 +77,40 @@ public class FFMPEG {
      * @param newSize Target resolution as "width:height"
      * @return FFmpeg command as String array
      */
-    public static String[] normalize(String inputFile, String outputFile, int targetFPS, String newSize) {
+    public static String[] normalize(Component inputFile, String outputFile, int targetFPS, String newSize) {
         String[] sizeParts = newSize.split(":");
         int targetWidth = Integer.parseInt(sizeParts[0]);
         int targetHeight = Integer.parseInt(sizeParts[1]);
+        int maxWidth = Component.getMaxResolution()[0];
+        int maxHeight = Component.getMaxResolution()[1];
+        int inputWidth = inputFile.getWidth();
+        int inputHeight = inputFile.getHeight();
 
-        // Safe scaling and cropping
+// Calculate scaling factor to ensure BOTH dimensions meet or exceed target
+        double scaleWidth = (double) maxWidth / inputWidth;
+        double scaleHeight = (double) maxHeight / inputHeight;
+        double scaleFactor = Math.max(scaleWidth, scaleHeight);
+
+// Calculate scaled dimensions maintaining aspect ratio
+        int scaledWidth = (int) Math.ceil(inputWidth * scaleFactor);
+        int scaledHeight = (int) Math.ceil(inputHeight * scaleFactor);
+
         String[] filter = new String[]{
-                "scale=" + Component.getMaxResolution()[0] + ":-1:force_original_aspect_ratio=decrease,crop=" + Component.getMaxResolution()[0] + ":" + Component.getMaxResolution()[1],
+                // Scale first to ensure we have enough pixels
+                "scale=" + scaledWidth + ":" + scaledHeight,
+
+                // Center crop to exact target dimensions
+                "crop=" + maxWidth + ":" + maxHeight + ":(iw-" + maxWidth + ")/2:(ih-" + maxHeight + ")/2",
+
+                // Add padding if final target is larger than max resolution
                 "pad=" + targetWidth + ":" + targetHeight + ":(ow-iw)/2:(oh-ih)/2:color=black",
+
                 Filter.setPTS(),
                 Filter.fps(targetFPS)
         };
 
         List<Function<String[], String[]>> functions = List.of(
-                input -> Utils.input(inputFile),
+                input -> Utils.input(inputFile.getPath()),
                 input -> Filter.simple(0, new String[]{ CMD.join(filter, ",") }),
                 input -> Utils.cPRate(targetFPS),
                 input -> Utils.lxcEncode(0, 0),
@@ -137,9 +156,9 @@ public class FFMPEG {
         // Create scaling and padding filters for each input
         for (int i = 0; i < numInputs; i++) {
             filterComplex.append(String.format(
-                    "[%d:v]scale=%s:%s:force_original_aspect_ratio=decrease," +
-                            "pad=%s:%s:(ow-iw)/2:(oh-ih)/2[v%d];",
-                    i, maxWidth, maxHeight, maxWidth, maxHeight, i
+                    "[%d:v]scale=%d:%d:force_original_aspect_ratio=decrease," +
+                            "scale=trunc(iw/2)*2:trunc(ih/2)*2[v%d];",
+                    i, maxRes[0], maxRes[1], i
             ));
         }
 
@@ -247,7 +266,7 @@ public class FFMPEG {
         try {
             System.out.println("--- TRYING POSTCARD GEN");
             String outputPath = FFMPEG.getOutPath() + File.separator + "postcard_" + UUID.randomUUID() + ".mp4";
-            String[] command = loopImg(5, postcard.getPath(), outputPath);
+            String[] command = loopImg(10, postcard.getPath(), outputPath);
             String[] fullCommand = CMD.concat(new String[]{CMD.normalizePath(exePath), "-y"}, command);
             if(!CMD.run(fullCommand)) return null;
             System.out.println("--- POSTCARD PROCESS COMPLETED SUCCESSFULLY");
@@ -310,6 +329,8 @@ public class FFMPEG {
                         input -> Filter.simple(new String[]{ "lavfi" }),
                         input -> Utils.input("aevalsrc=0:d=20"),
                         input -> Utils.cFormat(1, 0),
+                        input -> Utils.bitRate(1, 128, 0),
+                        input -> Utils.sampleRate(1, 44100),
                         input -> new String[]{ silentAudio }
                 );
 
@@ -317,6 +338,8 @@ public class FFMPEG {
                 if(!CMD.run(silentCommand)) return null;
 
                 // Create video with silent audio
+                String prePath = FFMPEG.getOutPath() + File.separator + "normalized_" + UUID.randomUUID() + ".mp4";
+
                 List<Function<String[], String[]>> preCommand = List.of(
                         input -> Utils.exeOverwrite(),
                         input -> Utils.loop(),
@@ -327,17 +350,29 @@ public class FFMPEG {
                         input -> Utils.crf(18),
                         input -> Utils.preset(0),
                         input -> Utils.pickShortest(),
-                        input -> new String[]{ outputPath }
+                        input -> new String[]{ prePath }
                 );
 
                 String[] finalCommand = Pipeline.biLambda(preCommand, CMD::concat);
                 if(!CMD.run(finalCommand)) return null;
 
                 tempFiles.add(silentAudio);
+
+                Component tempComponent = component.copyTo(prePath);
+
+                String[] command = FFMPEG.normalize(
+                        tempComponent,
+                        outputPath,
+                        targetFPS,
+                        maxRes[0] + ":" + maxRes[1]
+                );
+                String[] fullCommand = CMD.concat(Utils.exeOverwrite(), command);
+                if(!CMD.run(fullCommand)) return null;
+
             } else {
                 // Existing video normalization code
-                String[] command = normalize(
-                        component.getPath(),
+                String[] command = FFMPEG.normalize(
+                        component,
                         outputPath,
                         targetFPS,
                         maxRes[0] + ":" + maxRes[1]

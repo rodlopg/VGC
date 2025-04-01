@@ -4,7 +4,7 @@ import edu.up.isgc.vgc.Component;
 /**
  * Represents a Video component with editable properties.
  */
-public class Video extends Component implements Edit {
+public class Video extends Component {
     // Codec used for encoding the video
     private String codec;
 
@@ -60,11 +60,7 @@ public class Video extends Component implements Edit {
     public String returnIFormat(){ return "Video"; }
 
     @Override
-    public Component scale(){ return this; }
-
-    @Override
-    public Component cut(){ return this; }
-
-    @Override
-    public Component copy(){ return this; }
+    public Component copyTo(String newPath){
+        return new Video(this.getWidth(), this.getHeight(), this.getDate(), this.getDuration(), this.getType(), newPath, this.getCodec());
+    }
 }

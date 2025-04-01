@@ -4,7 +4,7 @@ import edu.up.isgc.vgc.Component;
 /**
  * Represents an image component with editable properties.
  */
-public class Image extends Component implements Edit {
+public class Image extends Component {
     /**
      * Constructor for an Image object.
      * @param width Image width
@@ -38,11 +38,8 @@ public class Image extends Component implements Edit {
     public String returnIFormat(){ return "Image"; }
 
     @Override
-    public Component scale(){ return this; }
+    public Component copyTo(String newPath){
+        return new Image(this.getWidth(), this.getHeight(), this.getDate(), this.getDuration(), this.getType(), newPath);
+    }
 
-    @Override
-    public Component cut(){ return this; }
-
-    @Override
-    public Component copy(){ return this; }
 }
