@@ -12,33 +12,29 @@ import java.nio.file.Paths;
 import java.util.*;
 import java.util.function.Function;
 
+/**
+ * FFMPEG utility class for video processing operations
+ */
 public class FFMPEG {
+    // Path to ffmpeg executable
     private static String exePath = new File("Tools/FFMPEG/ffmpeg.exe").getAbsolutePath();
+    // Default output directory path
     private static String outPath = new File("Outputs").getAbsolutePath();
 
+    // Setter for ffmpeg executable path
     public static void setExePath(String newPath) { exePath = newPath; }
+    // Setter for output directory path
     public static void setOutputPath(String newPath) { outPath = newPath; }
 
+    /**
+     * Creates a video loop from a single image
+     * @param duration Duration of the output video in seconds
+     * @param filePath Path to the input image file
+     * @param outputPath Path for the output video file
+     * @return FFmpeg command as String array
+     */
     public static String[] loopImg(int duration, String filePath, String outputPath) {
         String sDuration = Integer.toString(duration);
-        /*
-        List<Function<String[], String[]>> functions = List.of(
-                input -> new String[]{"-loop", "1"},
-                input -> input(filePath),
-                input -> new String[]{"-t", sDuration},
-                input -> new String[]{"-f", "lavfi", "-i", "aevalsrc=0:d=" + sDuration},
-                input -> new String[]{"-vf", "scale="+ Component.getMaxResolution()[0] +":-1:flags=lanczos"},
-                input -> new String[]{"-map", "0:v"},
-                input -> new String[]{"-map", "1:a"},
-                input -> new String[]{"-shortest"},
-                input -> new String[]{"-max_muxing_queue_size", "1024"},
-                input -> new String[]{"-thread_queue_size", "1024"},
-                input -> lxcEncode(0, 0),
-                input -> new String[]{"-c:a", "aac"},
-                input -> pixelFormat(),
-                input -> output(outputPath)
-        );
-         */
 
         List<Function<String[], String[]>> functions = List.of(
                 input -> Utils.loop(),
@@ -60,6 +56,11 @@ public class FFMPEG {
         return Pipeline.biLambda(functions, CMD::concat);
     }
 
+    /**
+     * Creates input commands for multiple files
+     * @param inputFiles Array of input file paths
+     * @return FFmpeg input commands as String array
+     */
     public static String[] inputMany(String[] inputFiles) {
         String[] inputCommand = new String[0];
         for (String file : inputFiles) {
@@ -68,6 +69,14 @@ public class FFMPEG {
         return inputCommand;
     }
 
+    /**
+     * Normalizes a video file to target FPS and resolution
+     * @param inputFile Path to input video file
+     * @param outputFile Path for output video file
+     * @param targetFPS Target frames per second
+     * @param newSize Target resolution as "width:height"
+     * @return FFmpeg command as String array
+     */
     public static String[] normalize(String inputFile, String outputFile, int targetFPS, String newSize) {
         String[] sizeParts = newSize.split(":");
         int targetWidth = Integer.parseInt(sizeParts[0]);
@@ -81,18 +90,6 @@ public class FFMPEG {
                 Filter.fps(targetFPS)
         };
 
-        /*
-        List<Function<String[], String[]>> functions = List.of(
-                input -> input(inputFile),
-                input -> new String[]{"-vf", CMD.join(filter, ",")},
-                input -> cPRate(targetFPS),
-                input -> lxcEncode(0, 0),
-                input -> new String[]{"-c:a", "aac"},
-                input -> output(outputFile)
-        );
-
-         */
-
         List<Function<String[], String[]>> functions = List.of(
                 input -> Utils.input(inputFile),
                 input -> Filter.simple(0, new String[]{ CMD.join(filter, ",") }),
@@ -105,6 +102,14 @@ public class FFMPEG {
         return Pipeline.biLambda(functions, CMD::concat);
     }
 
+    /**
+     * Creates a grid video from multiple input videos
+     * @param inputFiles Array of input video paths
+     * @param outputPath Path for output grid video
+     * @param targetFPS Target frames per second
+     * @param maxRes Maximum resolution as [width, height]
+     * @return FFmpeg command as String array
+     */
     public static String[] createGrid(String[] inputFiles, String outputPath, int targetFPS, int[] maxRes) {
         if (inputFiles == null || inputFiles.length == 0) {
             throw new IllegalArgumentException("No input files for grid creation");
@@ -129,6 +134,7 @@ public class FFMPEG {
         List<String> positions = new ArrayList<>();
         List<String> inputs = new ArrayList<>();
 
+        // Create scaling and padding filters for each input
         for (int i = 0; i < numInputs; i++) {
             filterComplex.append(String.format(
                     "[%d:v]scale=%s:%s:force_original_aspect_ratio=decrease," +
@@ -137,6 +143,7 @@ public class FFMPEG {
             ));
         }
 
+        // Calculate grid positions
         for (int i = 0; i < numInputs; i++) {
             inputs.add("[v" + i + "]");
             int row = i / cols;
@@ -146,6 +153,7 @@ public class FFMPEG {
             positions.add(xPos + "_" + yPos);
         }
 
+        // Combine all inputs into grid
         filterComplex.append(String.join("", inputs))
                 .append("xstack=inputs=").append(numInputs)
                 .append(":layout=").append(String.join("|", positions))
@@ -163,6 +171,11 @@ public class FFMPEG {
         return Pipeline.biLambda(functions, CMD::concat);
     }
 
+    /**
+     * Converts an image file to Base64 encoded string
+     * @param imagePath Path to the image file
+     * @return Base64 encoded string or null if conversion fails
+     */
     private static String imageToBase64(String imagePath) {
         try {
             byte[] imageBytes = Files.readAllBytes(Paths.get(imagePath));
@@ -173,6 +186,12 @@ public class FFMPEG {
         }
     }
 
+    /**
+     * Generates a final video from components
+     * @param outputFileName Name for the output video file
+     * @param components List of components to include in video
+     * @param addSubtitles Flag to enable subtitles (not currently used)
+     */
     public static void generateVideo(String outputFileName, List<Component> components, boolean addSubtitles) {
         List<String> tempFiles = new ArrayList<>();
         try {
@@ -217,6 +236,12 @@ public class FFMPEG {
         }
     }
 
+    /**
+     * Processes a postcard component into a video loop
+     * @param postcard Postcard component to process
+     * @param tempFiles List to track temporary files for cleanup
+     * @return Path to generated video or null if processing fails
+     */
     private static String processPostcard(Component postcard, List<String> tempFiles) {
         if(postcard == null) return null;
         try {
@@ -234,6 +259,14 @@ public class FFMPEG {
         }
     }
 
+    /**
+     * Processes list of components into videos
+     * @param components List of components to process
+     * @param targetFPS Target frames per second
+     * @param maxRes Maximum resolution as [width, height]
+     * @param tempFiles List to track temporary files for cleanup
+     * @return List of paths to processed videos
+     */
     private static List<String> processComponents(List<Component> components, int targetFPS, int[] maxRes, List<String> tempFiles) {
         List<String> processedVideos = new ArrayList<>();
         for(Component component : components) {
@@ -256,6 +289,14 @@ public class FFMPEG {
         return processedVideos;
     }
 
+    /**
+     * Processes media (image or video) component
+     * @param component Component to process
+     * @param targetFPS Target frames per second
+     * @param maxRes Maximum resolution as [width, height]
+     * @param tempFiles List to track temporary files for cleanup
+     * @return Path to processed media or null if processing fails
+     */
     private static String processMedia(Component component, int targetFPS, int[] maxRes, List<String> tempFiles) {
         try {
             String outputPath = FFMPEG.getOutPath() + File.separator + "normalized_" + UUID.randomUUID() + ".mp4";
@@ -263,16 +304,6 @@ public class FFMPEG {
             if(component.returnIFormat().equals("Image")) {
                 // Generate silent audio
                 String silentAudio = FFMPEG.getOutPath() + File.separator + "silent_" + UUID.randomUUID() + ".aac";
-                /*
-                String[] silentCommand = {
-                        exePath, "-y",
-                        "-f", "lavfi",
-                        "-i", "aevalsrc=0:d=20",
-                        "-c:a", "aac",
-                        silentAudio
-                };
-
-                 */
 
                 List<Function<String[], String[]>> preCommandA = List.of(
                         input -> Utils.exeOverwrite(),
@@ -286,23 +317,6 @@ public class FFMPEG {
                 if(!CMD.run(silentCommand)) return null;
 
                 // Create video with silent audio
-                /*
-                String[] loopCommand = {
-                        exePath, "-y",
-                        "-loop", "1",
-                        "-i", component.getPath(),
-                        "-i", silentAudio,
-                        "-vf", "scale=" + maxRes[0] + ":-1:flags=lanczos",
-                        "-t", "20",
-                        "-c:v", "libx264",
-                        "-crf", "18",
-                        "-preset", "ultrafast",
-                        "-shortest",
-                        outputPath
-                };
-
-                 */
-
                 List<Function<String[], String[]>> preCommand = List.of(
                         input -> Utils.exeOverwrite(),
                         input -> Utils.loop(),
@@ -328,7 +342,6 @@ public class FFMPEG {
                         targetFPS,
                         maxRes[0] + ":" + maxRes[1]
                 );
-                //String[] fullCommand = CMD.concat(new String[]{exePath, "-y"}, command);
                 String[] fullCommand = CMD.concat(Utils.exeOverwrite(), command);
                 if(!CMD.run(fullCommand)) return null;
             }
@@ -341,11 +354,17 @@ public class FFMPEG {
         }
     }
 
+    /**
+     * Adds audio description to a video
+     * @param component Component containing the video
+     * @param videoPath Path to the video file
+     * @param tempFiles List to track temporary files for cleanup
+     * @return Path to video with audio or original path if addition fails
+     */
     private static String addAudioDescription(Component component, String videoPath, List<String> tempFiles) {
         try {
             // Extract frame for description
             String framePath = FFMPEG.getOutPath() + File.separator + "frame_" + UUID.randomUUID() + ".png";
-            //String[] frameCommand = {exePath, "-y", "-i", videoPath, "-vframes", "1", "-q:v", "2", framePath};
 
             List<Function<String[], String[]>> preCommandA = List.of(
                     input -> Utils.exeOverwrite(),
@@ -366,24 +385,6 @@ public class FFMPEG {
 
             // Merge audio with video (match durations)
             String mergedPath = FFMPEG.getOutPath() + File.separator + "merged_" + UUID.randomUUID() + ".mp4";
-            /*
-            String[] mergeCommand = {
-                    exePath, "-y",
-                    "-i", videoPath,
-                    "-i", audioPath,
-                    "-map", "0:v",      // Directly map video from first input
-                    "-map", "1:a",      // Directly map audio from second input
-                    "-c:v", "libx264",
-                    "-crf", "18",
-                    "-preset", "ultrafast",
-                    "-pix_fmt", "yuv420p",  // Add pixel format for compatibility
-                    "-c:a", "aac",
-                    "-b:a", "128k",     // Explicit audio bitrate
-                    "-ar", "44100",     // Force output audio to 44100Hz sample rate
-                    "-shortest",        // Optional: match output duration to shortest stream
-                    mergedPath
-            };
-            */
 
             List<Function<String[], String[]>> preCommandB = List.of(
                     input -> Utils.exeOverwrite(),
@@ -411,9 +412,12 @@ public class FFMPEG {
         }
     }
 
+    /**
+     * Gets duration of a media file
+     * @param filePath Path to media file
+     * @return Duration as string or default "20.0" if cannot determine
+     */
     private static String getMediaDuration(String filePath) {
-        //String[] command = {exePath, "-i", filePath};
-
         String[] command = CMD.concat(new String[]{exePath}, Utils.input(filePath));
 
         String output = CMD.expect(command);
@@ -421,6 +425,12 @@ public class FFMPEG {
                 output.split("Duration:")[1].split(",")[0].trim() : "20.0";
     }
 
+    /**
+     * Generates audio description from an image frame
+     * @param framePath Path to image frame
+     * @param tempFiles List to track temporary files for cleanup
+     * @return Path to generated audio file or null if generation fails
+     */
     private static String generateAudioFromFrame(String framePath, List<String> tempFiles) {
         try {
             String base64Image = imageToBase64(framePath);
@@ -434,7 +444,6 @@ public class FFMPEG {
             if(rawAudio == null) return null;
 
             String trimmedAudio = FFMPEG.getOutPath() + File.separator + "trimmed_" + UUID.randomUUID() + ".mp3";
-            //String[] trimCommand = {exePath, "-y", "-i", rawAudio, "-t", "20", "-c", "copy", trimmedAudio};
 
             List<Function<String[], String[]>> preCommand = List.of(
                     input -> Utils.exeOverwrite(),
@@ -459,6 +468,14 @@ public class FFMPEG {
         }
     }
 
+    /**
+     * Creates a grid video from multiple input videos
+     * @param inputVideos List of input video paths
+     * @param targetFPS Target frames per second
+     * @param maxRes Maximum resolution as [width, height]
+     * @param tempFiles List to track temporary files for cleanup
+     * @return Path to generated grid video or null if creation fails
+     */
     private static String createGridVideo(List<String> inputVideos, int targetFPS, int[] maxRes, List<String> tempFiles) {
         try {
             String gridPath = FFMPEG.getOutPath() + File.separator + "grid_" + UUID.randomUUID() + ".mp4";
@@ -474,6 +491,12 @@ public class FFMPEG {
         }
     }
 
+    /**
+     * Concatenates multiple videos into a single output
+     * @param inputs List of input video paths
+     * @param outputName Name for output video file
+     * @param tempFiles List to track temporary files for cleanup
+     */
     private static void concatenateVideos(List<String> inputs, String outputName, List<String> tempFiles) {
         try {
             // Step 1: Concatenate without filters
@@ -485,12 +508,6 @@ public class FFMPEG {
                     if(path != null) writer.println("file '" + path.replace("'", "'\\''") + "'");
                 }
             }
-/*
-            String[] concatCommand = {
-                    exePath, "-y", "-f", "concat", "-safe", "0", "-i", listFile,
-                    "-c", "copy", tempOutput
-            };
-            */
 
             List<Function<String[], String[]>> preCommand = List.of(
                     input -> Utils.exeOverwrite(),
@@ -505,15 +522,6 @@ public class FFMPEG {
 
             // Step 2: Apply padding filter
             String finalOutput = FFMPEG.getOutPath() + File.separator + outputName;
-
-            /*
-            String[] fCommand = {
-                    exePath, "-y", "-i", tempOutput,
-                    "-vf", "pad=iw:ih:(ow-iw)/2:(oh-ih)/2:color=black"
-            };
-            */
-
-
 
             List<Function<String[], String[]>> filterCommands = List.of(
                     input -> Utils.exeOverwrite(),
@@ -536,7 +544,10 @@ public class FFMPEG {
         }
     }
 
-
+    /**
+     * Cleans up temporary files
+     * @param tempFiles List of temporary file paths to delete
+     */
     private static void cleanTempFiles(List<String> tempFiles) {
         for (String path : tempFiles) {
             try {
@@ -548,6 +559,7 @@ public class FFMPEG {
         }
     }
 
+    // Getters and setters
     public static String getExePath() { return exePath; }
     public static String getOutPath() { return outPath; }
     public static void setOutPath(String outPath) { FFMPEG.outPath = outPath; }
