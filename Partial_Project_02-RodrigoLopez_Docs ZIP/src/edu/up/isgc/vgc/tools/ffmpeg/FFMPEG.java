@@ -9,7 +9,6 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.sql.SQLOutput;
 import java.util.*;
 import java.util.function.Function;
 
@@ -117,20 +116,24 @@ public class FFMPEG {
                 throw new IllegalArgumentException("Missing input file: " + file);
             }
         }
+
         StringBuilder filterComplex = new StringBuilder();
         int numInputs = inputFiles.length;
 
         int cols = (int) Math.ceil(Math.sqrt(numInputs));
         int rows = (int) Math.ceil((double) numInputs / cols);
 
+        String maxWidth = Integer.toString(maxRes[0]);
+        String maxHeight = Integer.toString(maxRes[1]);
+
         List<String> positions = new ArrayList<>();
         List<String> inputs = new ArrayList<>();
 
         for (int i = 0; i < numInputs; i++) {
             filterComplex.append(String.format(
-                    "[%d:v]scale=%d:%d:force_original_aspect_ratio=decrease:flags=bicubic:force_divisible_by=2," +
-                            "pad=%d:%d:(ow-iw)/2:(oh-ih)/2,fps=%d[v%d];",
-                    i, maxRes[0], maxRes[1], maxRes[0], maxRes[1], targetFPS, i
+                    "[%d:v]scale=%s:%s:force_original_aspect_ratio=decrease," +
+                            "pad=%s:%s:(ow-iw)/2:(oh-ih)/2[v%d];",
+                    i, maxWidth, maxHeight, maxWidth, maxHeight, i
             ));
         }
 
@@ -218,7 +221,7 @@ public class FFMPEG {
         if(postcard == null) return null;
         try {
             System.out.println("--- TRYING POSTCARD GEN");
-            String outputPath = outPath + File.separator + "postcard_" + UUID.randomUUID() + ".mp4";
+            String outputPath = FFMPEG.getOutPath() + File.separator + "postcard_" + UUID.randomUUID() + ".mp4";
             String[] command = loopImg(5, postcard.getPath(), outputPath);
             String[] fullCommand = CMD.concat(new String[]{CMD.normalizePath(exePath), "-y"}, command);
             if(!CMD.run(fullCommand)) return null;
@@ -255,11 +258,11 @@ public class FFMPEG {
 
     private static String processMedia(Component component, int targetFPS, int[] maxRes, List<String> tempFiles) {
         try {
-            String outputPath = outPath + File.separator + "normalized_" + UUID.randomUUID() + ".mp4";
+            String outputPath = FFMPEG.getOutPath() + File.separator + "normalized_" + UUID.randomUUID() + ".mp4";
 
             if(component.returnIFormat().equals("Image")) {
                 // Generate silent audio
-                String silentAudio = outPath + File.separator + "silent_" + UUID.randomUUID() + ".aac";
+                String silentAudio = FFMPEG.getOutPath() + File.separator + "silent_" + UUID.randomUUID() + ".aac";
                 /*
                 String[] silentCommand = {
                         exePath, "-y",
@@ -341,7 +344,7 @@ public class FFMPEG {
     private static String addAudioDescription(Component component, String videoPath, List<String> tempFiles) {
         try {
             // Extract frame for description
-            String framePath = outPath + File.separator + "frame_" + UUID.randomUUID() + ".png";
+            String framePath = FFMPEG.getOutPath() + File.separator + "frame_" + UUID.randomUUID() + ".png";
             //String[] frameCommand = {exePath, "-y", "-i", videoPath, "-vframes", "1", "-q:v", "2", framePath};
 
             List<Function<String[], String[]>> preCommandA = List.of(
@@ -362,7 +365,7 @@ public class FFMPEG {
             String duration = getMediaDuration(audioPath);
 
             // Merge audio with video (match durations)
-            String mergedPath = outPath + File.separator + "merged_" + UUID.randomUUID() + ".mp4";
+            String mergedPath = FFMPEG.getOutPath() + File.separator + "merged_" + UUID.randomUUID() + ".mp4";
             /*
             String[] mergeCommand = {
                     exePath, "-y",
@@ -430,7 +433,7 @@ public class FFMPEG {
             String rawAudio = OpenAI.generateAudio(description, "audio_" + UUID.randomUUID());
             if(rawAudio == null) return null;
 
-            String trimmedAudio = outPath + File.separator + "trimmed_" + UUID.randomUUID() + ".mp3";
+            String trimmedAudio = FFMPEG.getOutPath() + File.separator + "trimmed_" + UUID.randomUUID() + ".mp3";
             //String[] trimCommand = {exePath, "-y", "-i", rawAudio, "-t", "20", "-c", "copy", trimmedAudio};
 
             List<Function<String[], String[]>> preCommand = List.of(
@@ -458,7 +461,7 @@ public class FFMPEG {
 
     private static String createGridVideo(List<String> inputVideos, int targetFPS, int[] maxRes, List<String> tempFiles) {
         try {
-            String gridPath = outPath + File.separator + "grid_" + UUID.randomUUID() + ".mp4";
+            String gridPath = FFMPEG.getOutPath() + File.separator + "grid_" + UUID.randomUUID() + ".mp4";
             String[] command = createGrid(inputVideos.toArray(new String[0]), gridPath, targetFPS, maxRes);
             String[] fullCommand = CMD.concat(new String[]{CMD.normalizePath(exePath), "-y"}, command);
             if(!CMD.run(fullCommand)) throw new Exception("Grid creation failed");
@@ -474,8 +477,8 @@ public class FFMPEG {
     private static void concatenateVideos(List<String> inputs, String outputName, List<String> tempFiles) {
         try {
             // Step 1: Concatenate without filters
-            String tempOutput = outPath + File.separator + "temp_" + UUID.randomUUID() + ".mp4";
-            String listFile = outPath + File.separator + "concat_list_" + UUID.randomUUID() + ".txt";
+            String tempOutput = FFMPEG.getOutPath() + File.separator + "temp_" + UUID.randomUUID() + ".mp4";
+            String listFile = FFMPEG.getOutPath() + File.separator + "concat_list_" + UUID.randomUUID() + ".txt";
 
             try (PrintWriter writer = new PrintWriter(listFile)) {
                 for(String path : inputs) {
@@ -501,7 +504,7 @@ public class FFMPEG {
             if(!CMD.run(concatCommand)) throw new Exception("Concatenation failed");
 
             // Step 2: Apply padding filter
-            String finalOutput = outPath + File.separator + outputName;
+            String finalOutput = FFMPEG.getOutPath() + File.separator + outputName;
 
             /*
             String[] fCommand = {
