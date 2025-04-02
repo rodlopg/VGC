@@ -4,10 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="fd813f4f-cf0c-4832-a0dd-54245d82ae62" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/edu/up/isgc/vgc/tools/ffmpeg/FFMPEG.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/edu/up/isgc/vgc/tools/ffmpeg/FFMPEG.java" afterDir="false" />
-    </list>
+    <list default="true" id="fd813f4f-cf0c-4832-a0dd-54245d82ae62" name="Changes" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -125,7 +122,7 @@
       <workItem from="1743544098523" duration="1333000" />
       <workItem from="1743554962101" duration="1020000" />
       <workItem from="1743556078045" duration="1184000" />
-      <workItem from="1743557988783" duration="3901000" />
+      <workItem from="1743557988783" duration="4506000" />
     </task>
     <servers />
   </component>

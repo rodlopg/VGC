@@ -47,17 +47,33 @@ The project follows a **component-based system**, where different classes intera
    - Also, for further facilitating the use of the different options that FFmpeg has, I decided to make two more classes (`Format` and `Filter`) to make the management and use of this program easier, scalable, and as reusable as possible.
    - In both `Format` and `Filter` classes, what was done was create a repository of `String` arrays and static methods that would help facilitate the management of options like choosing a codec, selecting bitrates, choosing pixel formats, creating simple filters, creating complex filters, and more. Obviously, using encapsulation and also adding a bit of processing to help the developer with the use of these options: for instance, the use of the module operator `%` to make this part foolproof and also receiving only `int` values as a way to mitigate the use of `String` objects and reduce possible errors.
 
-### 6. `Main Execution Flow`
-   - User provides input video(s).
-   - Commands are assembled using `Utils` and `CMD`.
-   - `Pipeline` processes the commands and executes them.
-   - FFmpeg operations are performed and results are generated.
+### 6. `EXIF`
+   - Handles metadata extraction from media files using ExifTool
+   - Provides methods to get width, height, creation date, duration, MIME type, and codec information
+   - Includes internal normalization for consistent output formats
+   - Used by the system to gather technical specifications about media files
+
+### 7. `OpenAI`
+   - Integrates with multiple OpenAI APIs including DALL-E, GPT-4 Vision, and Text-to-Speech
+   - Generates images from text prompts using DALL-E
+   - Creates detailed descriptions of images using GPT-4 Vision
+   - Converts text to speech with configurable voice options
+   - Handles both URL-based and base64-encoded image inputs
+
+### 8. `GClient`
+   - The graphical user interface for the application
+   - Provides visual controls for all system functionalities
+   - Displays processing progress and results
+   - Integrates with both FFmpeg processing and AI features
 
 ## How the Classes Work Together
 - **`Utils` and `CMD`** generate the necessary command-line arguments.
 - **`Format`** ensures the correct parameters are applied.
 - **`Pipeline`** processes different functions into a more complex result.
 - **`FFMPEG`** runs the generated command and outputs the processed video.
+- **`EXIF`** extracts metadata to inform processing decisions
+- **`OpenAI`** provides AI-powered media generation capabilities
+- **`GClient`** ties all components together in a user-friendly interface
 - **Error Handling** ensures smooth execution and logging.
 
 ## Future Enhancements
