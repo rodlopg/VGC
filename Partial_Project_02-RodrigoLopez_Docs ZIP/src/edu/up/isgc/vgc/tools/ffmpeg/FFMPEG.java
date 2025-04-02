@@ -1,7 +1,9 @@
 package edu.up.isgc.vgc.tools.ffmpeg;
 
 import edu.up.isgc.vgc.Component;
+import edu.up.isgc.vgc.graphic.Video;
 import edu.up.isgc.vgc.tools.CMD;
+import edu.up.isgc.vgc.tools.EXIF;
 import edu.up.isgc.vgc.tools.OpenAI;
 import edu.up.isgc.vgc.tools.Pipeline;
 import java.io.File;
@@ -224,7 +226,7 @@ public class FFMPEG {
             System.out.println("-- POSTCARD ARRAY: " + Arrays.toString(postCards));
 
             // Process first postcard (no audio)
-            String firstPostcard = processPostcard(postCards[0], tempFiles);
+            String firstPostcard = processPostcard(postCards[0], tempFiles, targetFPS);
             if(firstPostcard != null){
                 videoSegments.add(firstPostcard);
                 System.out.println("-- FIRST POSTCARD ADDED: " + firstPostcard);
@@ -239,7 +241,7 @@ public class FFMPEG {
             videoSegments.add(gridVideo);
 
             // Process second postcard (no audio)
-            String lastPostcard = processPostcard(postCards[1], tempFiles);
+            String lastPostcard = processPostcard(postCards[1], tempFiles, targetFPS);
             if(lastPostcard != null) {
                 videoSegments.add(lastPostcard);
                 System.out.println("-- SECOND POSTCARD ADDED: " + lastPostcard);
@@ -261,16 +263,25 @@ public class FFMPEG {
      * @param tempFiles List to track temporary files for cleanup
      * @return Path to generated video or null if processing fails
      */
-    private static String processPostcard(Component postcard, List<String> tempFiles) {
+    private static String processPostcard(Component postcard, List<String> tempFiles, int targetFPS) {
         if(postcard == null) return null;
         try {
             System.out.println("--- TRYING POSTCARD GEN");
-            String outputPath = FFMPEG.getOutPath() + File.separator + "postcard_" + UUID.randomUUID() + ".mp4";
-            String[] command = loopImg(10, postcard.getPath(), outputPath);
+            String outputPath = FFMPEG.getOutPath() + File.separator + "normalizedPostcard_" + UUID.randomUUID() + ".mp4";
+            String prePath = FFMPEG.getOutPath() + File.separator + "postcard_" + UUID.randomUUID() + ".mp4";
+
+            String[] command = loopImg(10, postcard.getPath(), prePath);
             String[] fullCommand = CMD.concat(new String[]{CMD.normalizePath(exePath), "-y"}, command);
             if(!CMD.run(fullCommand)) return null;
             System.out.println("--- POSTCARD PROCESS COMPLETED SUCCESSFULLY");
+
+            Component tempComponent = new Video(Component.getMaxResolution()[0], Component.getMaxResolution()[1], Component.generateNow(), 10.0, "mp4", prePath, Format.getCodec(0,0));
+
+            String[] fullCommandB = CMD.concat(Utils.exeOverwrite(),FFMPEG.normalize(tempComponent, outputPath, targetFPS, Component.getMaxResolution()[0]+":"+Component.getMaxResolution()[1]));
+            if(!(CMD.run(fullCommandB))) return null;
+
             tempFiles.add(outputPath);
+            tempFiles.add(prePath);
             return outputPath;
         } catch (Exception e) {
             System.err.println("Postcard processing failed: " + e.getMessage());
@@ -511,6 +522,7 @@ public class FFMPEG {
      * @param tempFiles List to track temporary files for cleanup
      * @return Path to generated grid video or null if creation fails
      */
+
     private static String createGridVideo(List<String> inputVideos, int targetFPS, int[] maxRes, List<String> tempFiles) {
         try {
             String gridPath = FFMPEG.getOutPath() + File.separator + "grid_" + UUID.randomUUID() + ".mp4";
@@ -518,7 +530,6 @@ public class FFMPEG {
             String[] fullCommand = CMD.concat(new String[]{CMD.normalizePath(exePath), "-y"}, command);
             if(!CMD.run(fullCommand)) throw new Exception("Grid creation failed");
 
-            tempFiles.add(gridPath);
             return gridPath;
         } catch (Exception e) {
             System.err.println("Grid creation failed: " + e.getMessage());
@@ -534,45 +545,53 @@ public class FFMPEG {
      */
     private static void concatenateVideos(List<String> inputs, String outputName, List<String> tempFiles) {
         try {
-            // Step 1: Concatenate without filters
-            String tempOutput = FFMPEG.getOutPath() + File.separator + "temp_" + UUID.randomUUID() + ".mp4";
+            // Step 1: Create concat list file
             String listFile = FFMPEG.getOutPath() + File.separator + "concat_list_" + UUID.randomUUID() + ".txt";
-
             try (PrintWriter writer = new PrintWriter(listFile)) {
-                for(String path : inputs) {
-                    if(path != null) writer.println("file '" + path.replace("'", "'\\''") + "'");
+                for (String path : inputs) {
+                    if (path != null) writer.println("file '" + path.replace("'", "'\\''") + "'");
                 }
             }
 
-            List<Function<String[], String[]>> preCommand = List.of(
-                    input -> Utils.exeOverwrite(),
-                    input -> Utils.inputConcatList(listFile),
-                    input -> Utils.streamCopy(),
-                    input -> new String[]{tempOutput}
-            );
-
-            String[] concatCommand = Pipeline.biLambda(preCommand, CMD::concat);
-
-            if(!CMD.run(concatCommand)) throw new Exception("Concatenation failed");
-
-            // Step 2: Apply padding filter
+            // Step 2: Directly concatenate with re-encoding (no intermediate temp file)
             String finalOutput = FFMPEG.getOutPath() + File.separator + outputName;
 
-            List<Function<String[], String[]>> filterCommands = List.of(
+            List<Function<String[], String[]>> command = List.of(
                     input -> Utils.exeOverwrite(),
-                    input -> Utils.input(tempOutput),
-                    input -> Utils.addPadding(),
-                    input -> Utils.lxcEncode(0, 0),
-                    input -> Utils.streamCopy(1),
-                    input -> new String[]{ finalOutput }
+                    input -> new String[]{"-f", "concat"},
+                    input -> new String[]{"-safe", "0"},
+                    input -> Utils.inputConcatList(listFile),
+
+                    // Video processing
+                    input -> new String[]{"-vf", "settb=AVTB,setpts=N/FRAME_RATE/TB"},
+                    input -> new String[]{"-r", "30"},  // Force constant frame rate
+
+                    // Audio processing
+                    input -> new String[]{"-af", "aresample=async=1:first_pts=0"},
+
+                    // Encoding settings
+                    input -> new String[]{"-c:v", "libx264"},
+                    input -> new String[]{"-preset", "fast"},
+                    input -> new String[]{"-crf", "23"},  // Quality balance
+                    input -> new String[]{"-pix_fmt", "yuv420p"},
+                    input -> new String[]{"-c:a", "aac"},
+                    input -> new String[]{"-b:a", "192k"},
+
+                    // Metadata and streaming optimizations
+                    input -> new String[]{"-movflags", "+faststart"},
+                    input -> new String[]{"-video_track_timescale", "90000"},
+
+                    input -> new String[]{finalOutput}
             );
 
-            String[] filterCommand = Pipeline.biLambda(filterCommands, CMD::concat);
+            String[] fullCommand = Pipeline.biLambda(command, CMD::concat);
 
-            if(!CMD.run(filterCommand)) throw new Exception("Filter application failed");
+            if (!CMD.run(fullCommand)) {
+                throw new Exception("Concatenation with re-encoding failed");
+            }
 
+            // Cleanup
             tempFiles.add(listFile);
-            tempFiles.add(tempOutput);
         } catch (Exception e) {
             System.err.println("Video processing failed: " + e.getMessage());
             throw new RuntimeException(e);

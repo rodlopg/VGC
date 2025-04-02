@@ -6,12 +6,6 @@
   <component name="ChangeListManager">
     <list default="true" id="fd813f4f-cf0c-4832-a0dd-54245d82ae62" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Main.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Main.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/edu/up/isgc/vgc/Component.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/edu/up/isgc/vgc/Component.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/edu/up/isgc/vgc/graphic/Edit.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/edu/up/isgc/vgc/graphic/Image.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/edu/up/isgc/vgc/graphic/Image.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/edu/up/isgc/vgc/graphic/Video.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/edu/up/isgc/vgc/graphic/Video.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/edu/up/isgc/vgc/gui/GClient.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/edu/up/isgc/vgc/gui/GClient.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/edu/up/isgc/vgc/tools/ffmpeg/FFMPEG.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/edu/up/isgc/vgc/tools/ffmpeg/FFMPEG.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -125,7 +119,13 @@
       <workItem from="1743526953483" duration="2385000" />
       <workItem from="1743533441297" duration="2041000" />
       <workItem from="1743535562557" duration="369000" />
-      <workItem from="1743536152995" duration="1710000" />
+      <workItem from="1743536152995" duration="1908000" />
+      <workItem from="1743538127488" duration="886000" />
+      <workItem from="1743539073650" duration="4609000" />
+      <workItem from="1743544098523" duration="1333000" />
+      <workItem from="1743554962101" duration="1020000" />
+      <workItem from="1743556078045" duration="1184000" />
+      <workItem from="1743557988783" duration="3901000" />
     </task>
     <servers />
   </component>
