@@ -88,8 +88,7 @@ graph LR
     Utils --> EXIF
     CMD --> FFMPEG
     FFMPEG --> Format
-
----
+```
 
 ## Conclusion
 The **Video Client Generator** provides a structured, modular approach to video processing using FFmpeg. By leveraging an object-oriented architecture, the project ensures **scalability, flexibility, and maintainability**, making it a powerful tool for video encoding and format conversion.
