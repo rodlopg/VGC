@@ -83,6 +83,7 @@ The project follows a **component-based system**, where different classes intera
 graph LR
     GClient --> Pipeline
     GClient --> OpenAI
+    OpenAI --> FFMPEG
     Pipeline --> CMD
     Pipeline --> Utils
     Utils --> EXIF
