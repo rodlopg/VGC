@@ -1,7 +1,7 @@
 # Video Client Generator
 
 ## Dear Dr. Jafet and Mr. Moya
-
+## IMPORTANT, For the following classes: FFMPEG, EXIF, OpenAI please search the first line of code of each one of them for a constant were you have to replace the value with your respectiv path/API KEY for the code to properly execute and let us (lettuce, lol) be happy
 ## Overview
 The **Video Client Generator** is a modular tool designed to process and convert video files using a pipeline-based workflow. It integrates FFmpeg functionalities within a structured, object-oriented architecture to provide efficient and customizable media processing.
 

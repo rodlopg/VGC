@@ -19,7 +19,7 @@ import java.util.function.Function;
  */
 public class FFMPEG {
     // Path to ffmpeg executable
-    private static String exePath = new File("Tools/FFMPEG/ffmpeg.exe").getAbsolutePath();
+    private static String exePath = new File("Tools/FFMPEG/ffmpeg.exe").getAbsolutePath(); //HERE ADD THE PATH TO THE ffmpeg.exe please
     // Default output directory path
     private static String outPath = new File("Outputs").getAbsolutePath();
 

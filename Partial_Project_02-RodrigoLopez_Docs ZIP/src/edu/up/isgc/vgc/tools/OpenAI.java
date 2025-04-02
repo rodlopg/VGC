@@ -31,7 +31,7 @@ import static env.Environment.API_KEY_HERE;
  */
 public class OpenAI {
     // API configuration constants
-    private static final String API_KEY = API_KEY_HERE();
+    private static final String API_KEY = API_KEY_HERE(); //ADD YOUR API KEY HERE
     public static final String OPENAI_URL = "https://api.openai.com/v1";
     private static final String IMG_GEN_URL = OPENAI_URL + "/images/generations";
     private static final String IMG_TXT_URL = OPENAI_URL + "/chat/completions";

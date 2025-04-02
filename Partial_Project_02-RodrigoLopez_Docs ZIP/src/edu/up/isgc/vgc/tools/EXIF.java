@@ -10,7 +10,7 @@ import static edu.up.isgc.vgc.tools.CMD.*;
 public class EXIF {
     // Path to ExifTool executable, normalized to ensure compatibility
     private final static String exePath = CMD.normalizePath(
-            new File("Tools/exiftool-13.22_64/exiftool.exe").getAbsolutePath()
+            new File("Tools/exiftool-13.22_64/exiftool.exe").getAbsolutePath() // HERE ADD YOUR PATH TO THE exiftool.exe AND PLEASE DO NOT FORGET TO REMOVE THE (-k) from the name, otherwise it will stay open after running a command and we don't want that
     );
 
     // Gets the width of an image
